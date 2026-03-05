@@ -3012,13 +3012,13 @@
             <form class="api-form" onsubmit="return false">
             <div class="api-field">
               <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="bingx-key"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-key"
                   placeholder="Cole sua API Key aqui..."><button class="api-eye"
                   onclick="toggleEye('bingx-key',this)">👁</button></div>
             </div>
             <div class="api-field">
               <div class="api-field-label">Secret Key</div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="bingx-secret"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-secret"
                   placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
                   onclick="toggleEye('bingx-secret',this)">👁</button></div>
             </div>
@@ -3055,13 +3055,13 @@
             <form class="api-form" onsubmit="return false">
             <div class="api-field">
               <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="mexc-key"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-key"
                   placeholder="Cole sua API Key aqui..."><button class="api-eye"
                   onclick="toggleEye('mexc-key',this)">👁</button></div>
             </div>
             <div class="api-field">
               <div class="api-field-label">Secret Key</div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="mexc-secret"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-secret"
                   placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
                   onclick="toggleEye('mexc-secret',this)">👁</button></div>
             </div>
@@ -3098,13 +3098,13 @@
             <form class="api-form" onsubmit="return false">
             <div class="api-field">
               <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="gate-key"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-key"
                   placeholder="Cole sua API Key aqui..."><button class="api-eye"
                   onclick="toggleEye('gate-key',this)">👁</button></div>
             </div>
             <div class="api-field">
               <div class="api-field-label">Secret Key</div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="gate-secret"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-secret"
                   placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
                   onclick="toggleEye('gate-secret',this)">👁</button></div>
             </div>
@@ -3141,19 +3141,19 @@
             <form class="api-form" onsubmit="return false">
             <div class="api-field">
               <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="kucoin-key"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-key"
                   placeholder="Cole sua API Key aqui..."><button class="api-eye"
                   onclick="toggleEye('kucoin-key',this)">👁</button></div>
             </div>
             <div class="api-field">
               <div class="api-field-label">Secret Key</div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="kucoin-secret"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-secret"
                   placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
                   onclick="toggleEye('kucoin-secret',this)">👁</button></div>
             </div>
             <div class="api-field">
               <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
-              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="off" id="kucoin-pp"
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-pp"
                   placeholder="Passphrase KuCoin..."><button class="api-eye"
                   onclick="toggleEye('kucoin-pp',this)">👁</button></div>
             </div>
@@ -3342,43 +3342,48 @@
     // ════════════════════════════════════════════════════════
     // FETCH with CORS proxy fallback
     // ════════════════════════════════════════════════════════
-    async function apiFetch(url, opts = {}, noThrow = false) {
-      // Passa URL COMPLETA como _target — proxy repassa sem modificar
-      function getProxyBase() {
-        const qs = new URLSearchParams(location.search || '');
-        const qp = qs.get('proxy');
+    function getProxyBase() {
+      try {
+        const qp = new URLSearchParams(location.search).get('proxy');
         if (qp) {
           const clean = qp.replace(/\/+$/, '');
           lsSet('proxy_base', clean);
+          return clean;
         }
-        const saved = lsGet('proxy_base');
-        if (saved) return saved.replace(/\/+$/, '');
-        const needsLocalProxy = (location && (location.protocol === 'file:' || (location.port && location.port !== '8080')));
-        if (needsLocalProxy) return 'http://localhost:8080';
+      } catch (e) { }
+      const saved = lsGet('proxy_base');
+      return saved ? saved.replace(/\/+$/, '') : '';
+    }
+    async function apiFetch(url, opts = {}, noThrow = false) {
+      // Passa URL COMPLETA como _target — proxy repassa sem modificar
+      function buildProxyUrl(originalUrl) {
+        const proxyBase = getProxyBase();
+        if (proxyBase) return proxyBase + '/proxy?_target=' + encodeURIComponent(originalUrl);
+        if (location && location.port === '8080') return '/proxy?_target=' + encodeURIComponent(originalUrl);
+        if (location && location.protocol === 'file:') return 'http://localhost:8080/proxy?_target=' + encodeURIComponent(originalUrl);
         return '';
       }
-      function buildProxyUrl(originalUrl) {
-        const base = getProxyBase();
-        return (base ? base : '') + '/proxy?_target=' + encodeURIComponent(originalUrl);
-      }
-      const preferProxy = (location && (location.protocol === 'file:' || (location.port && location.port !== '8080')));
       const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
       const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
-      const forceProxy = preferProxy || isExchangeUrl;
+      const forceProxy = isExchangeUrl;
 
-      // 1) Tenta pelo proxy local (localhost:8080)
+      // 1) Tenta proxy (render/local)
       try {
         const proxyUrl = buildProxyUrl(url);
-        const h = { ...(opts.headers || {}) };
-        delete h['content-length']; delete h['Content-Length'];
-        const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
-        if (r.ok || r.status < 500) return r;
+        if (!proxyUrl) {
+          if (forceProxy && !noThrow) throw new Error('Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base');
+        } else {
+          const h = { ...(opts.headers || {}) };
+          delete h['content-length']; delete h['Content-Length'];
+          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
+          if (r.ok || r.status < 500) return r;
+        }
       } catch (e) {
-        console.warn('Proxy local falhou:', e.message);
-        if (forceProxy && !noThrow) throw new Error('Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+        console.warn('Proxy falhou:', e.message);
+        if (forceProxy && !noThrow) throw new Error(e.message || 'Proxy offline');
       }
 
-      // 2) Tenta direto (funciona em VPS/servidor próprio)
+      // 2) Tenta direto (apenas quando não for exchange/CORS)
       if (!forceProxy) {
         try {
           const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(8000) });
@@ -3396,7 +3401,7 @@
         } catch (e) { }
       }
 
-      if (!noThrow) throw new Error('Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+      if (!noThrow) throw new Error('Proxy offline.');
     }
 
     // ════════════════════════════════════════════════════════
@@ -4300,10 +4305,12 @@
       }).catch(e => {
         console.warn('[INIT] Timestamp offset falhou:', errMsg(e));
       });
-      if (location && location.hostname && location.hostname.includes('vercel.app')) {
-        const pb = lsGet('proxy_base');
-        if (!pb) notify('⚠ Configure o Proxy Base: localStorage proxy_base', 'w');
-      }
+      try {
+        const pb = getProxyBase();
+        if (!pb && location && location.port !== '8080' && location.protocol !== 'file:') {
+          notify('⚠ Proxy não configurado. Use ?proxy=URL_DO_BACKEND', 'w');
+        }
+      } catch (e) { }
       loadSavedConfig(); loadSavedKeys(); loadSavedTrades();
       document.querySelectorAll('input[type=number]').forEach(el => {
         el.addEventListener('change', () => normalizeNumberInput(el.id, 0, null, 8));
