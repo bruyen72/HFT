@@ -3344,10 +3344,22 @@
     // ════════════════════════════════════════════════════════
     async function apiFetch(url, opts = {}, noThrow = false) {
       // Passa URL COMPLETA como _target — proxy repassa sem modificar
-      function buildProxyUrl(originalUrl) {
+      function getProxyBase() {
+        const qs = new URLSearchParams(location.search || '');
+        const qp = qs.get('proxy');
+        if (qp) {
+          const clean = qp.replace(/\/+$/, '');
+          lsSet('proxy_base', clean);
+        }
+        const saved = lsGet('proxy_base');
+        if (saved) return saved.replace(/\/+$/, '');
         const needsLocalProxy = (location && (location.protocol === 'file:' || (location.port && location.port !== '8080')));
-        const proxyBase = needsLocalProxy ? 'http://localhost:8080' : '';
-        return proxyBase + '/proxy?_target=' + encodeURIComponent(originalUrl);
+        if (needsLocalProxy) return 'http://localhost:8080';
+        return '';
+      }
+      function buildProxyUrl(originalUrl) {
+        const base = getProxyBase();
+        return (base ? base : '') + '/proxy?_target=' + encodeURIComponent(originalUrl);
       }
       const preferProxy = (location && (location.protocol === 'file:' || (location.port && location.port !== '8080')));
       const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
@@ -4288,6 +4300,10 @@
       }).catch(e => {
         console.warn('[INIT] Timestamp offset falhou:', errMsg(e));
       });
+      if (location && location.hostname && location.hostname.includes('vercel.app')) {
+        const pb = lsGet('proxy_base');
+        if (!pb) notify('⚠ Configure o Proxy Base: localStorage proxy_base', 'w');
+      }
       loadSavedConfig(); loadSavedKeys(); loadSavedTrades();
       document.querySelectorAll('input[type=number]').forEach(el => {
         el.addEventListener('change', () => normalizeNumberInput(el.id, 0, null, 8));
