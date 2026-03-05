@@ -4274,7 +4274,12 @@
         }
         if (ex === 'BingX') {
           const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
+          if (!r) return null;
+          if (!r.ok) {
+            if (r.status === 403) console.warn('[QUOTE] BingX 403 (blocked by origin/IP)');
+            return null;
+          }
+          const d = await r.json();
           const data = d?.data || {};
           return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidQty || 0), askQty: parseFloat(data.askQty || 0) };
         }
