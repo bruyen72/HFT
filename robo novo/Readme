@@ -1,0 +1,76 @@
+ #ARB-HFT — Crypto Arbitrage Engine
+
+Sistema profissional de arbitragem HFT com interface web em tempo real.
+
+## Exchanges Suportadas
+- **BingX** — Spot + Futures
+- **MEXC** — Spot + Futures
+- **Gate.io** — Spot + Futures
+- **KuCoin** — Spot + Futures
+
+## Modalidades
+| Tipo | Descrição |
+|------|-----------|
+| `SPOT_SPOT` | Arbitragem entre spots de exchanges diferentes |
+| `SPOT_FUTURES` | Arbitragem spot vs contrato futuro (basis trade) |
+| `FUTURES_FUTURES` | Arbitragem entre futuros de exchanges diferentes |
+
+## Arquitetura
+
+```
+ArbHftApplication
+├── BotConfig                     # Parâmetros centralizados
+├── ArbitrageEngine               # Núcleo - detecta spreads a cada 50ms
+│   ├── OrderBookManager          # Livros de oferta em memória (ConcurrentSkipListMap)
+│   ├── FeeCalculator             # Cálculo de taxas por exchange/tipo
+│   ├── FundingRateMonitor        # Monitora funding rate em tempo real
+│   └── RiskManager               # Pre-trade: limites de exposição/perda
+├── ExchangeWebSocketManager      # Gerencia 4+ conexões WS
+│   ├── BingXWebSocket            # WS nativo BingX
+│   ├── MEXCWebSocket             # WS nativo MEXC
+│   ├── GateWebSocket             # WS nativo Gate.io
+│   └── KuCoinWebSocket           # WS nativo KuCoin
+├── OrderExecutor                 # LIMIT BUY + SELL simultâneos (CompletableFuture)
+└── WebServer (Undertow)          # UI + REST API + SSE push
+```
+
+## Setup
+
+### Pré-requisitos
+- Java 17+
+- Maven 3.8+
+
+### Build
+```bash
+mvn clean package -q
+java -jar target/arb-hft-engine-1.0.0-jar-with-dependencies.jar
+```
+
+### Configuração
+1. Edite `config.properties` com suas API keys
+2. Configure `risk.autoExecute=false` inicialmente
+3. Acesse `http://localhost:8080`
+
+## API REST
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/api/opportunities` | GET | Lista de oportunidades ordenadas por spread |
+| `/api/status` | GET | Status do bot e conexões |
+| `/api/orderbook?exchange=X&symbol=Y&type=Z` | GET | Livro de ofertas real |
+| `/api/execute` | POST | Executa arbitragem (LIMIT BUY + SELL) |
+| `/api/config` | GET/POST | Lê/atualiza configurações |
+| `/events` | SSE | Stream de oportunidades em tempo real |
+
+## Segurança
+- **NUNCA** salve API keys em controle de versão
+- Use variáveis de ambiente para keys em produção
+- Permissão mínima: apenas `TRADING` (nunca `WITHDRAW`)
+- Whitelist de IP nas exchanges
+
+## Notas HFT
+- Scan a cada **50ms** via thread dedicada
+- Orderbook com **ConcurrentSkipListMap** para O(log n)
+- Execução simultânea via **CompletableFuture** (2 threads paralelas)
+- Auto-cancelamento se uma perna falhar (evita posição nua)
+- Detecção de liquidez real até N% de slippage configurável
