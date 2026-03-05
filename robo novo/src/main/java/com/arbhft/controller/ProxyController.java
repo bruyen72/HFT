@@ -21,7 +21,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/proxy")
 public class ProxyController {
-    private static final List<String> BLOCKED=List.of("host","content-length","transfer-encoding","connection","accept-encoding");
+    // Block headers that can trigger origin restrictions on exchanges
+    private static final List<String> BLOCKED=List.of(
+        "host",
+        "content-length",
+        "transfer-encoding",
+        "connection",
+        "accept-encoding",
+        "origin",
+        "referer",
+        "sec-fetch-site",
+        "sec-fetch-mode",
+        "sec-fetch-dest",
+        "sec-fetch-user"
+    );
     private final WebClient client=WebClient.builder()
         .defaultHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .defaultHeader("Accept","application/json")
