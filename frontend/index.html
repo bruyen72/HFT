@@ -3342,6 +3342,7 @@
     // ════════════════════════════════════════════════════════
     // FETCH with CORS proxy fallback
     // ════════════════════════════════════════════════════════
+    const DEFAULT_PROXY_BASE = 'http://163.176.148.53:8080';
     function getProxyBase() {
       try {
         const qp = new URLSearchParams(location.search).get('proxy');
@@ -3352,7 +3353,8 @@
         }
       } catch (e) { }
       const stored = localStorage.getItem('proxy_base');
-      return stored ? stored.replace(/\/+$/, '') : '';
+      if (stored) return stored.replace(/\/+$/, '');
+      return DEFAULT_PROXY_BASE;
     }
     async function apiFetch(url, opts = {}, noThrow = false) {
       // Passa URL COMPLETA como _target — proxy repassa sem modificar
@@ -3360,7 +3362,7 @@
         const proxyBase = getProxyBase();
         if (proxyBase) return proxyBase + '/proxy?_target=' + encodeURIComponent(originalUrl);
         if (location && location.port === '8080') return '/proxy?_target=' + encodeURIComponent(originalUrl);
-        if (location && location.protocol === 'file:') return 'http://localhost:8080/proxy?_target=' + encodeURIComponent(originalUrl);
+        if (location && location.protocol === 'file:') return DEFAULT_PROXY_BASE + '/proxy?_target=' + encodeURIComponent(originalUrl);
         return '';
       }
       const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
@@ -3374,6 +3376,8 @@
           if (forceProxy && !noThrow) throw new Error('Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base');
         } else {
           const h = { ...(opts.headers || {}) };
+          // Avoid ngrok HTML warning page on free tunnels
+          h['ngrok-skip-browser-warning'] = '1';
           delete h['content-length']; delete h['Content-Length'];
           const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
           if (r.ok || r.status < 500) return r;
