@@ -2598,7 +2598,7 @@
       </div>
       <div class="alist" id="alist"></div>
       <div class="col-ft">
-        <span>min: <b id="minSV">0.3%</b></span>
+        <span>min: <b id="minSV">0%</b></span>
         <span><b id="listCt">20</b> pares</span>
       </div>
     </div>
@@ -2786,9 +2786,9 @@
           <option value="FF">FF</option>
         </select>
         <span class="fl">SPREAD≥</span>
-        <input class="fi" type="number" id="fSp" value="0.3" step="0.1" style="width:40px" onchange="applyF()">
+        <input class="fi" type="number" id="fSp" value="0" step="0.05" style="width:40px" onchange="applyF()">
         <span class="fl">% LIQ≥</span>
-        <input class="fi" type="number" id="fLiq" value="50000" step="10000" style="width:62px" onchange="applyF()">
+        <input class="fi" type="number" id="fLiq" value="0" step="10000" style="width:62px" onchange="applyF()">
         <span class="fl">EXCH:</span>
         <select class="fs" id="fEx" onchange="applyF()">
           <option value="all">Todas</option>
@@ -2949,23 +2949,23 @@
       <div class="api-section-title">⚙️ Configurações Globais de Risco</div>
       <div class="api-global-card">
         <div class="api-global-row"><span class="api-global-label">Spread Mín. (%)</span><input class="api-global-inp"
-            type="number" value="0.30" step="0.05"></div>
+            id="cfg-minSpread" type="number" value="0" step="0.05"></div>
         <div class="api-global-row"><span class="api-global-label">Lucro Líq. Mín. (%)</span><input
-            class="api-global-inp" type="number" value="0.15" step="0.05"></div>
+            class="api-global-inp" id="cfg-minNet" type="number" value="0.15" step="0.05"></div>
         <div class="api-global-row"><span class="api-global-label">Tamanho Ordem (USDT)</span><input
-            class="api-global-inp" type="number" value="500" step="50"></div>
+            class="api-global-inp" id="cfg-orderSize" type="number" value="500" step="50"></div>
         <div class="api-global-row"><span class="api-global-label">Ordens Simultâneas</span><input
-            class="api-global-inp" type="number" value="5" step="1"></div>
+            class="api-global-inp" id="cfg-maxOrders" type="number" value="5" step="1"></div>
         <div class="api-global-row"><span class="api-global-label">Slippage Máx. (%)</span><input class="api-global-inp"
             type="number" value="0.08" step="0.01"></div>
         <div class="api-global-row"><span class="api-global-label">Stop-Loss (%)</span><input class="api-global-inp"
-            type="number" value="0.50" step="0.05"></div>
+            id="cfg-stopLoss" type="number" value="0.50" step="0.05"></div>
         <div class="api-global-row"><span class="api-global-label">Perda Máx. Diária (USDT)</span><input
-            class="api-global-inp" type="number" value="200" step="10"></div>
+            class="api-global-inp" id="cfg-maxDailyLoss" type="number" value="200" step="10"></div>
         <div class="api-global-row"><span class="api-global-label">Exposição Total Máx.</span><input
-            class="api-global-inp" type="number" value="5000" step="100"></div>
+            class="api-global-inp" id="cfg-maxExposure" type="number" value="5000" step="100"></div>
         <div class="api-global-row"><span class="api-global-label">Liquidez Mín. OB (USDT)</span><input
-            class="api-global-inp" type="number" value="50000" step="5000"></div>
+            class="api-global-inp" id="cfg-minLiq" type="number" value="0" step="5000"></div>
       </div>
     </div>
 
@@ -4300,7 +4300,7 @@
       (function () { var __t = document.getElementById('scanBadge'); if (__t) __t.textContent = filteredRows.length; })();
       (function () { var __t = document.getElementById('listCt'); if (__t) __t.textContent = filteredRows.length; })();
       (function () { var __t = document.getElementById('hotCt'); if (__t) __t.textContent = filteredRows.filter(r => r.spread > 0.5).length + ' hot'; })();
-      const msv = document.getElementById('minSV'); if (msv) msv.textContent = (document.getElementById('fSp')?.value || '0.3') + '%';
+      const msv = document.getElementById('minSV'); if (msv) msv.textContent = (document.getElementById('fSp')?.value || '0') + '%';
     }
 
     function sel(i) {
@@ -4598,7 +4598,7 @@
       if (positions.length) renderPos();
       updateBalPanel(); renderOverview();
       if (botRunning && document.getElementById('tog-auto')?.checked) {
-        const minSp = parseFloat(document.getElementById('cfg-minSpread')?.value || .3);
+        const minSp = parseFloat(document.getElementById('cfg-minSpread')?.value || 0);
         const best = filteredRows.find(r => r.spread >= minSp && r.net > 0);
         if (best) { selIdx = filteredRows.indexOf(best); sel(selIdx); doArb() }
       }
