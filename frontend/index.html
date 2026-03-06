@@ -3597,15 +3597,9 @@
         }
       }
 
-      // 3) Fallback: corsproxy.io (apenas GET público)
-      if (!opts.method || opts.method === 'GET') {
-        try {
-          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
-          if (r.ok) return r;
-        } catch (e) { }
-      }
-
-      if (!noThrow) throw new Error(lastErr || 'Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+      // Fallback corsproxy.io REMOVIDO — causava 429 em massa e vazamento de dados
+      // Se o proxy configurado falha, encerra aqui com erro claro.
+      if (!noThrow) throw new Error(lastErr || 'Proxy offline. Abra o site com ?proxy=URL_DO_BACKEND');
     }
 
     // ════════════════════════════════════════════════════════
