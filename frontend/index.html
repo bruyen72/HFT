@@ -3460,6 +3460,7 @@
 
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
     let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
+    let arbInProgress = false;
 
     // ════════════════════════════════════════════════════════
     // LOCALSTORAGE
@@ -3563,7 +3564,7 @@
         if (location && location.protocol === 'file:') return DEFAULT_PROXY_BASE + '/proxy?_target=' + encodeURIComponent(originalUrl);
         return '';
       }
-      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
+      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com', 'api.lbkex.com', 'api.bitget.com'];
       const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
       const forceProxy = isExchangeUrl;
       let lastErr = null;
@@ -3677,6 +3678,8 @@
         else if (exl === 'kucoin') res = await balKuCoin(saved);
         else if (exl === 'bybit') res = await balBybit(saved);
         else if (exl === 'okx') res = await balOKX(saved);
+        else if (exl === 'lbank') res = await balLBank(saved);
+        else if (exl === 'bitget') res = await balBitget(saved);
         else res = { error: 'Saldo não implementado para ' + exch };
         // Normaliza nome para bater com chave do objeto BAL
         const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
@@ -3839,6 +3842,37 @@
         return { spot, futures: fut };
       } catch (e) { return { error: 'OKX: ' + e.message } }
     }
+    async function balLBank(c) {
+      // LBank V2 — HMAC-SHA256, params sorted alphabetically
+      try {
+        const ts = Date.now().toString();
+        const params = { api_key: c.key, sign_type: 'HmacSHA256', time: ts };
+        const sorted = Object.keys(params).sort().map(k => k + '=' + params[k]).join('&');
+        const sig = await hmacHex(sorted, c.secret);
+        const body = sorted + '&sign=' + sig;
+        const r = await apiFetch('https://api.lbkex.com/v2/user_info.do', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const d = await r.json();
+        if (d.result !== 'true' && d.result !== true) return { error: 'LBank: ' + (d.error_code || JSON.stringify(d).slice(0, 60)) };
+        const spot = parseFloat(d.data?.info?.free?.USDT || 0);
+        return { spot, futures: 0 };
+      } catch (e) { return { error: 'LBank: ' + e.message } }
+    }
+    async function balBitget(c) {
+      // Bitget V2 — HMAC-SHA256-Base64, passphrase obrigatória
+      if (!c.passphrase) return { error: 'Bitget: Passphrase obrigatória' };
+      try {
+        const ts = Date.now().toString();
+        const path = '/api/v2/spot/account/assets?coin=USDT';
+        const sig = await hmacB64(ts + 'GET' + path + '', c.secret);
+        const h = { 'ACCESS-KEY': c.key, 'ACCESS-SIGN': sig, 'ACCESS-TIMESTAMP': ts, 'ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' };
+        const r = await apiFetch('https://api.bitget.com' + path, { method: 'GET', headers: h });
+        const d = await r.json();
+        if (d.code !== '00000') return { error: 'Bitget: ' + (d.msg || 'code ' + d.code) };
+        const entry = (d.data || []).find(x => x.coin === 'USDT' || x.coinName === 'USDT');
+        const spot = parseFloat(entry?.available || 0);
+        return { spot, futures: 0 };
+      } catch (e) { return { error: 'Bitget: ' + e.message } }
+    }
     // ════════════════════════════════════════════════════════
     // PLACE REAL ORDERS
     // ════════════════════════════════════════════════════════
@@ -3850,7 +3884,11 @@
       if (exl === 'mexc') return placeOrderMEXC(c, symbol, side, qty, price, isSpot);
       if (exl === 'gate') return placeOrderGate(c, symbol, side, qty, price, isSpot);
       if (exl === 'kucoin') return placeOrderKuCoin(c, symbol, side, qty, price, isSpot);
-      throw new Error('Exchange desconhecida');
+      if (exl === 'bybit') return placeOrderBybit(c, symbol, side, qty, price, isSpot);
+      if (exl === 'okx') return placeOrderOKX(c, symbol, side, qty, price, isSpot);
+      if (exl === 'lbank' || exl === 'bitget') throw new Error(exch + ': execução de ordens não suportada. Use BingX, MEXC, Gate, KuCoin, Bybit ou OKX.');
+      if (exl === 'binance') throw new Error('Binance: bloqueada no servidor (CloudFront 403). Use outra exchange.');
+      throw new Error('Exchange desconhecida: ' + exch);
     }
 
     async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
@@ -3942,6 +3980,45 @@
         if (d.code !== '200000') throw new Error('KuCoin: ' + (d.msg || 'code ' + d.code));
         return { orderId: d.data?.orderId, exchange: 'KuCoin', symbol: sym, side, qty, price };
       } catch (e) { throw new Error('KuCoin ordem: ' + e.message) }
+    }
+    async function placeOrderBybit(c, sym, side, qty, price, isSpot) {
+      // Bybit V5 — HMAC-SHA256(ts+apiKey+recvWindow+bodyStr, secret)
+      const ts = Date.now().toString();
+      const recv = '5000';
+      const sf = sym.replace('/', '').replace('_', '');
+      const bodyObj = isSpot
+        ? { category: 'spot', symbol: sf, side: side === 'buy' ? 'Buy' : 'Sell', orderType: price ? 'Limit' : 'Market', qty: String(qty), price: String(price), timeInForce: 'GTC' }
+        : { category: 'linear', symbol: sf, side: side === 'buy' ? 'Buy' : 'Sell', orderType: price ? 'Limit' : 'Market', qty: String(qty), price: String(price), timeInForce: 'GTC', positionIdx: 0 };
+      const bodyStr = JSON.stringify(bodyObj);
+      const sig = await hmacHex(ts + c.key + recv + bodyStr, c.secret);
+      const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-SIGN': sig, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': recv, 'Content-Type': 'application/json' };
+      try {
+        const r = await apiFetch('https://api.bybit.com/v5/order/create', { method: 'POST', headers: h, body: bodyStr });
+        const d = await r.json();
+        if (d.retCode !== 0) throw new Error('Bybit: ' + (d.retMsg || 'code ' + d.retCode));
+        return { orderId: d.result?.orderId, exchange: 'Bybit', symbol: sym, side, qty, price };
+      } catch (e) { throw new Error('Bybit ordem: ' + e.message) }
+    }
+    async function placeOrderOKX(c, sym, side, qty, price, isSpot) {
+      // OKX V5 — HMAC-SHA256-Base64(ts+'POST'+path+bodyStr, secret)
+      if (!c.passphrase) throw new Error('OKX: Passphrase obrigatória');
+      const ts = new Date(Date.now() + (GLOBAL_TS_OFFSET || 0)).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+      const sf = sym.replace('/', '-');
+      const path = '/api/v5/trade/order';
+      const tdMode = isSpot ? 'cash' : 'cross';
+      const bodyObj = { instId: sf, tdMode, side: side.toLowerCase(), ordType: price ? 'limit' : 'market', sz: String(qty) };
+      if (price) bodyObj.px = String(price);
+      const bodyStr = JSON.stringify(bodyObj);
+      const sig = await hmacB64(ts + 'POST' + path + bodyStr, c.secret);
+      const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' };
+      try {
+        const r = await apiFetch('https://www.okx.com' + path, { method: 'POST', headers: h, body: bodyStr });
+        const d = await r.json();
+        if (d.code !== '0') throw new Error('OKX: ' + (d.msg || 'code ' + d.code));
+        const ord = d.data?.[0];
+        if (ord?.sCode !== '0') throw new Error('OKX: ' + (ord?.sMsg || 'order error'));
+        return { orderId: ord.ordId, exchange: 'OKX', symbol: sym, side, qty, price };
+      } catch (e) { throw new Error('OKX ordem: ' + e.message) }
     }
     async function testApi(exch) {
       const s = lsGet('keys_' + exch);
@@ -4363,6 +4440,7 @@
     // ARB EXECUTION
     // ════════════════════════════════════════════════════════
     function doArb() {
+      if (arbInProgress) { notify('⏳ Aguarde — execução em andamento...', 'w'); return; }
       const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
       const usdt = getOrderUSDT(); if (usdt <= 0) { notify('⚠ Defina a quantidade', 'w'); return }
       const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
@@ -4387,29 +4465,53 @@
       closeM();
       const r = filteredRows[selIdx]; if (!r) return;
       const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
-      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
-      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+      const buyPraw = parseFloat(document.getElementById('lBuy').value);
+      const sellPraw = parseFloat(document.getElementById('lSell').value);
+      const buyP = (!buyPraw || isNaN(buyPraw) || buyPraw <= 0) ? r.buyAt : buyPraw;
+      const sellP = (!sellPraw || isNaN(sellPraw) || sellPraw <= 0) ? r.sellAt : sellPraw;
+      if (!buyP || buyP <= 0 || !sellP || sellP <= 0) { notify('⚠ Preços inválidos', 'w'); return; }
       const usdt = getOrderUSDT(), token = getOrderToken();
+      if (!token || token <= 0) { notify('⚠ Quantidade inválida', 'w'); return; }
       const mode = document.getElementById('arbMode').value;
       const isSpotBuy = mode === 'SS' || mode === 'SF';
       const isSpotSell = mode === 'SS' || mode === 'FS';
       const hasBuyKey = !!lsGet('keys_' + bex.toLowerCase());
       const hasSellKey = !!lsGet('keys_' + sex.toLowerCase());
       if (!hasBuyKey || !hasSellKey) {
-        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), ' w');
+        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), 'w');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled'); return;
       }
+      arbInProgress = true;
       notify('⚡ Enviando ARB ' + r.sym + '...', '');
       try {
-        const [buyRes, sellRes] = await Promise.all([
-          placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy),
-          placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell)
-        ]);
-        notify('✓ ARB executado! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
+        // Executa sequencialmente para permitir rollback
+        let buyRes;
+        try {
+          buyRes = await placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy);
+        } catch (buyErr) {
+          notify('✗ BUY falhou (' + bex + '): ' + errMsg(buyErr), 'e');
+          registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+          return;
+        }
+        let sellRes;
+        try {
+          sellRes = await placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell);
+        } catch (sellErr) {
+          notify('✗ SELL falhou (' + sex + '): ' + errMsg(sellErr) + ' — revertendo BUY...', 'e');
+          // Rollback: tenta vender o que comprou a mercado
+          try {
+            await placeRealOrder(bex, r.sym, 'sell', token, buyP * 0.999, isSpotBuy);
+            notify('↩ Rollback BUY executado (' + bex + ')', 'w');
+          } catch (rbErr) {
+            notify('⚠ ROLLBACK FALHOU em ' + bex + ': ' + errMsg(rbErr) + ' — VERIFIQUE MANUALMENTE', 'e');
+          }
+          registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+          return;
+        }
+        notify('✓ ARB executado! BUY #' + (buyRes.orderId || '?') + ' | SELL #' + (sellRes.orderId || '?'), 'g');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
-      } catch (err) {
-        notify('✗ Falha: ' + errMsg(err), 'e');
-        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+      } finally {
+        arbInProgress = false;
       }
     }
 

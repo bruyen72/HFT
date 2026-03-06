@@ -11,7 +11,9 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*");
+        config.addAllowedOriginPattern("https://*.vercel.app");
+        config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("https://localhost:*");
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
