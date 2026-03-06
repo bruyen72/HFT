@@ -4389,8 +4389,9 @@
           return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
         }
         if (ex === 'KuCoin') {
-          const r = await apiFetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
+          // KuCoin bloqueia IPs de cloud (Oracle) — busca direto do browser (suporta CORS público)
+          const r = await fetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { signal: AbortSignal.timeout(8000) });
+          if (!r.ok) return null; const d = await r.json();
           if (d.code !== '200000') return null;
           const data = d.data || {};
           return { bid: parseFloat(data.buy || 0), ask: parseFloat(data.sell || 0), bidQty: 0, askQty: 0 };
