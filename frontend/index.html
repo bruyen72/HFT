@@ -2518,6 +2518,13 @@
           <div class="ld ld-warn"></div>KuCoin
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div id="proxy-led" style="width:6px;height:6px;border-radius:50%;background:#334;flex-shrink:0" title="Status do proxy"></div>
+        <input id="proxy-input" type="text" placeholder="https://xxx.trycloudflare.com"
+          style="width:210px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:9px;padding:2px 6px;border-radius:3px;outline:none"
+          onkeydown="if(event.key==='Enter')applyProxy()" title="URL do proxy HTTPS (Cloudflare tunnel)">
+        <button onclick="applyProxy()" class="btn" style="background:var(--bd1);color:var(--blue);border:1px solid var(--border2);padding:2px 6px;font-weight:600">SET</button>
+      </div>
     </div>
     <div class="stats">
       <div class="pill">WS <b id="wsLat">2ms</b></div>
@@ -3368,12 +3375,13 @@
       const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
       const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
       const forceProxy = isExchangeUrl;
+      let lastErr = null;
 
       // 1) Tenta proxy (render/local)
       try {
         const proxyUrl = buildProxyUrl(url);
         if (!proxyUrl) {
-          if (forceProxy && !noThrow) throw new Error('Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base');
+          lastErr = 'Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base';
         } else {
           const h = { ...(opts.headers || {}) };
           // Avoid ngrok HTML warning page on free tunnels
@@ -3384,7 +3392,9 @@
         }
       } catch (e) {
         console.warn('Proxy falhou:', e.message);
-        if (forceProxy && !noThrow) throw new Error(e.message || 'Proxy offline');
+        lastErr = e.message || 'Proxy offline';
+        const led = document.getElementById('proxy-led');
+        if (led) led.style.background = 'var(--red)';
       }
 
       // 2) Tenta direto (apenas quando não for exchange/CORS)
@@ -3405,7 +3415,7 @@
         } catch (e) { }
       }
 
-      if (!noThrow) throw new Error('Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+      if (!noThrow) throw new Error(lastErr || 'Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
     }
 
     // ════════════════════════════════════════════════════════
@@ -3729,6 +3739,36 @@
       const inp = document.getElementById(id); if (!inp) return;
       inp.type = inp.type === 'password' ? 'text' : 'password';
       btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+    }
+    function applyProxy() {
+      const inp = document.getElementById('proxy-input');
+      if (!inp) return;
+      const val = inp.value.trim().replace(/\/+$/, '');
+      if (!val) {
+        localStorage.removeItem('proxy_base');
+        notify('Proxy removido', 'w');
+      } else {
+        localStorage.setItem('proxy_base', val);
+        notify('Proxy: ' + val, '');
+      }
+      pingProxy();
+    }
+    async function pingProxy() {
+      const led = document.getElementById('proxy-led');
+      if (!led) return;
+      const pb = getProxyBase();
+      if (!pb) { led.style.background = '#334'; return; }
+      led.style.background = 'var(--yellow)';
+      led.title = 'Verificando...';
+      try {
+        const r = await fetch(pb + '/proxy?_target=' + encodeURIComponent('https://api.binance.com/api/v3/ping'), { signal: AbortSignal.timeout(6000) });
+        const ok = r.ok || r.status < 500;
+        led.style.background = ok ? 'var(--green)' : 'var(--red)';
+        led.title = ok ? 'Proxy OK: ' + pb : 'Proxy erro ' + r.status + ': ' + pb;
+      } catch (e) {
+        led.style.background = 'var(--red)';
+        led.title = 'Proxy offline: ' + (e.message || pb);
+      }
     }
     function notify(msg, type = '') {
       const el = document.createElement('div');
@@ -4320,6 +4360,8 @@
           notify('⚠ Proxy não configurado. Use ?proxy=URL_DO_BACKEND', 'w');
         }
       } catch (e) { }
+      const _pi = document.getElementById('proxy-input'); if (_pi) _pi.value = getProxyBase();
+      pingProxy();
       loadSavedConfig(); loadSavedKeys(); loadSavedTrades();
       document.querySelectorAll('input[type=number]').forEach(el => {
         el.addEventListener('change', () => normalizeNumberInput(el.id, 0, null, 8));
