@@ -2515,7 +2515,19 @@
           <div class="ld ld-on"></div>Gate
         </div>
         <div class="led">
-          <div class="ld ld-warn"></div>KuCoin
+          <div class="ld ld-on"></div>KuCoin
+        </div>
+        <div class="led">
+          <div class="ld ld-on"></div>Bybit
+        </div>
+        <div class="led">
+          <div class="ld ld-on"></div>OKX
+        </div>
+        <div class="led">
+          <div class="ld ld-on"></div>LBank
+        </div>
+        <div class="led">
+          <div class="ld ld-on"></div>Bitget
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
@@ -2637,6 +2649,8 @@
             <option>Binance</option>
             <option>Bybit</option>
             <option>OKX</option>
+            <option>LBank</option>
+            <option>Bitget</option>
           </select></div>
         <div class="te-r"><span class="te-l">SELL Exch.</span><select class="te-i" id="sellEx"
             onchange="onExchChange()">
@@ -2647,6 +2661,8 @@
             <option>Binance</option>
             <option>Bybit</option>
             <option>OKX</option>
+            <option>LBank</option>
+            <option>Bitget</option>
           </select></div>
         <div class="te-r"><span class="te-l">Tipo</span><select class="te-i" id="ordType">
             <option>LIMIT</option>
@@ -2768,6 +2784,8 @@
           <option>Binance</option>
           <option>Bybit</option>
           <option>OKX</option>
+          <option>LBank</option>
+          <option>Bitget</option>
         </select>
         <input class="fi" type="text" id="fSym" placeholder="BTC..." style="width:48px" oninput="applyF()">
         <button class="btn-sm" onclick="sortSp()">↓Spread</button>
@@ -2862,6 +2880,11 @@
             <option>MEXC</option>
             <option>Gate</option>
             <option>KuCoin</option>
+            <option>Binance</option>
+            <option>Bybit</option>
+            <option>OKX</option>
+            <option>LBank</option>
+            <option>Bitget</option>
           </select>
           <span class="fl">PAR:</span>
           <input class="fi" type="text" id="ordSym" placeholder="BTC..." style="width:50px" oninput="renderOrders()">
@@ -3135,6 +3158,81 @@
           </div>
         </div>
 
+        <!-- LBank -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#1a73e8">◈ LBank</span>
+            <div class="api-card-status">
+              <div class="api-status-dot on" id="lbank-dot"></div><span id="lbank-status" style="color:var(--green)">Conectado</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-secret',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="lbank-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="lbank-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('lbank')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('lbank')">💾 Salvar</button>
+          </div>
+        </div>
+
+        <!-- Bitget -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#00c8ff">◆ Bitget</span>
+            <div class="api-card-status">
+              <div class="api-status-dot on" id="bitget-dot"></div><span id="bitget-status" style="color:var(--green)">Conectado</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-secret',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-pp" placeholder="Passphrase Bitget..."><button class="api-eye" onclick="toggleEye('bitget-pp',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ FUTURES</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bitget-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bitget-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('bitget')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('bitget')">💾 Salvar</button>
+          </div>
+        </div>
+
         <!-- KuCoin -->
         <div class="api-card">
           <div class="api-card-hd">
@@ -3261,13 +3359,13 @@
     // CONSTANTS
     // ════════════════════════════════════════════════════════
     const PAIRS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'AVAX/USDT', 'LINK/USDT', 'DOT/USDT', 'POL/USDT', 'LTC/USDT', 'NEAR/USDT', 'APT/USDT', 'ARB/USDT', 'OP/USDT', 'INJ/USDT', 'SUI/USDT'];
-    const EXCHS = ['BingX', 'MEXC', 'Gate', 'KuCoin', 'Binance', 'Bybit', 'OKX'];
+    const EXCHS = ['BingX', 'MEXC', 'Gate', 'KuCoin', 'Binance', 'Bybit', 'OKX', 'LBank', 'Bitget'];
     const QUOTES = {};
     let LAST_FETCH = 0;
     let MODE_WARN_TS = 0;
 
-    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100 };
-    const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null } };
+    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100, LBank: .100, Bitget: .060 };
+    const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null }, LBank: { spot: null, futures: null }, Bitget: { spot: null, futures: null } };
     const BASE_PRICES = { 'BTC/USDT': 95000, 'ETH/USDT': 3400, 'SOL/USDT': 200, 'BNB/USDT': 650, 'XRP/USDT': 2.5, 'DOGE/USDT': 0.38, 'ADA/USDT': 1.05, 'AVAX/USDT': 42, 'LINK/USDT': 24, 'DOT/USDT': 8.5, 'MATIC/USDT': 0.90, 'LTC/USDT': 120, 'NEAR/USDT': 6.2, 'APT/USDT': 12, 'ARB/USDT': 1.1, 'OP/USDT': 2.1, 'INJ/USDT': 28, 'SUI/USDT': 4.8 };
 
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
@@ -3487,7 +3585,7 @@
         else if (exl === 'gate') res = await balGate(saved);
         else if (exl === 'kucoin') res = await balKuCoin(saved);
         // Normaliza nome para bater com chave do objeto BAL
-        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch;
+        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch;
         if (res.error) {
           setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
           notify('✗ ' + exchKey + ': ' + res.error, 'e');
@@ -4272,6 +4370,8 @@
       if (ex === 'KuCoin' || ex === 'OKX') return sym.replace('/', '-');
       if (ex === 'Gate') return sym.replace('/', '_');
       if (ex === 'BingX') return sym.replace('/', '-');
+      if (ex === 'LBank') return sym.replace('/', '_').toLowerCase();
+      if (ex === 'Bitget') return sym.replace('/', '');
       return s;
     }
     async function fetchQuote(ex, sym) {
@@ -4289,10 +4389,11 @@
           return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
         }
         if (ex === 'KuCoin') {
-          const r = await apiFetch('https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=' + s, { method: 'GET' }, true);
+          const r = await apiFetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { method: 'GET' }, true);
           if (!r) return null; const d = await r.json();
+          if (d.code !== '200000') return null;
           const data = d.data || {};
-          return { bid: parseFloat(data.bestBid || 0), ask: parseFloat(data.bestAsk || 0), bidQty: parseFloat(data.bestBidSize || 0), askQty: parseFloat(data.bestAskSize || 0) };
+          return { bid: parseFloat(data.buy || 0), ask: parseFloat(data.sell || 0), bidQty: 0, askQty: 0 };
         }
         if (ex === 'Gate') {
           const r = await apiFetch('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=' + s, { method: 'GET' }, true);
@@ -4322,6 +4423,22 @@
           const d = await r.json();
           const data = Array.isArray(d?.data) ? (d.data[0] || {}) : (d?.data || {});
           return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidVolume || data.bidQty || 0), askQty: parseFloat(data.askVolume || data.askQty || 0) };
+        }
+        if (ex === 'LBank') {
+          const r = await apiFetch('https://api.lbkex.com/v2/depth.do?symbol=' + s + '&size=1', { method: 'GET' }, true);
+          if (!r) return null; const d = await r.json();
+          if (d.result !== 'true' && d.result !== true) return null;
+          const bids = d.data?.bids; const asks = d.data?.asks;
+          if (!bids?.length || !asks?.length) return null;
+          return { bid: parseFloat(bids[0][0] || 0), ask: parseFloat(asks[0][0] || 0), bidQty: parseFloat(bids[0][1] || 0), askQty: parseFloat(asks[0][1] || 0) };
+        }
+        if (ex === 'Bitget') {
+          const r = await apiFetch('https://api.bitget.com/api/v2/spot/market/tickers?symbol=' + s, { method: 'GET' }, true);
+          if (!r) return null; const d = await r.json();
+          if (d.code !== '00000') return null;
+          const it = Array.isArray(d.data) ? d.data[0] : null;
+          if (!it) return null;
+          return { bid: parseFloat(it.bidPr || 0), ask: parseFloat(it.askPr || 0), bidQty: parseFloat(it.bidSz || 0), askQty: parseFloat(it.askSz || 0) };
         }
       } catch (e) {
         console.warn('[QUOTE] ' + ex + ' ' + sym + ': ' + errMsg(e));
