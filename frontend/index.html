@@ -3386,10 +3386,10 @@
           lastErr = 'Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base';
         } else {
           const h = { ...(opts.headers || {}) };
-          // Avoid ngrok HTML warning page on free tunnels
-          h['ngrok-skip-browser-warning'] = '1';
           delete h['content-length']; delete h['Content-Length'];
-          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
+          // credentials:'include' envia cookie ngrok (ativado ao visitar URL + "Visit Site")
+          // Sem header customizado = sem CORS preflight = sem bloqueio ngrok
+          const r = await fetch(proxyUrl, { ...opts, headers: h, credentials: 'include', signal: AbortSignal.timeout(10000) });
           if (r.ok || r.status < 500) return r;
         }
       } catch (e) {
