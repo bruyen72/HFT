@@ -121,6 +121,11 @@
       background: #334
     }
 
+    .ld-err {
+      background: var(--red);
+      box-shadow: 0 0 4px var(--red)
+    }
+
     .stats {
       display: flex;
       gap: 5px;
@@ -2506,28 +2511,28 @@
       <div class="logo">ARB<span>·HFT</span></div>
       <div class="leds">
         <div class="led">
-          <div class="ld ld-on"></div>BingX
+          <div class="ld ld-off" id="ld-bingx"></div>BingX
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>MEXC
+          <div class="ld ld-off" id="ld-mexc"></div>MEXC
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Gate
+          <div class="ld ld-off" id="ld-gate"></div>Gate
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>KuCoin
+          <div class="ld ld-off" id="ld-kucoin"></div>KuCoin
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Bybit
+          <div class="ld ld-off" id="ld-bybit"></div>Bybit
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>OKX
+          <div class="ld ld-off" id="ld-okx"></div>OKX
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>LBank
+          <div class="ld ld-off" id="ld-lbank"></div>LBank
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Bitget
+          <div class="ld ld-off" id="ld-bitget"></div>Bitget
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
@@ -4454,12 +4459,15 @@
         // Busca todas as exchanges em paralelo (cada exchange busca seus pares sequencialmente)
         await Promise.all(EXCHS.map(async ex => {
           if (!QUOTES[ex]) QUOTES[ex] = {};
+          let ok = 0;
           for (const sym of PAIRS) {
             const q = await fetchQuote(ex, sym);
             if (q && q.ask > 0 && q.bid > 0) {
               QUOTES[ex][sym] = { ...q, ts: now };
+              ok++;
             }
           }
+          updateLed(ex.toLowerCase(), ok > 0 ? 'on' : 'err');
         }));
       });
     }
