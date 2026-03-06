@@ -1583,6 +1583,16 @@
       box-shadow: 0 0 5px var(--red)
     }
 
+    .api-status-dot.loading {
+      background: var(--yellow);
+      animation: sdot-pulse 1s infinite
+    }
+
+    @keyframes sdot-pulse {
+      0%, 100% { opacity: 1 }
+      50% { opacity: .3 }
+    }
+
     .api-card-body {
       padding: 14px
     }
@@ -2544,11 +2554,11 @@
       </div>
     </div>
     <div class="stats">
-      <div class="pill">WS <b id="wsLat">2ms</b></div>
-      <div class="pill y">Opps <b id="oppCnt">18</b></div>
-      <div class="pill g">PnL Total <b id="totalPnl">+$342.18</b></div>
-      <div class="pill c">Posições <b id="posCount">3</b></div>
-      <div class="pill p">Win Rate <b id="winRate">78.3%</b></div>
+      <div class="pill">WS <b id="wsLat">—</b></div>
+      <div class="pill y">Opps <b id="oppCnt">0</b></div>
+      <div class="pill g">PnL Total <b id="totalPnl">$0.00</b></div>
+      <div class="pill c">Posições <b id="posCount">0</b></div>
+      <div class="pill p">Win Rate <b id="winRate">—</b></div>
       <div class="pill r">Perda/dia <b id="dailyLoss">$0.00</b></div>
       <div class="sdot"></div>
       <span style="font-size:8px;color:var(--green);font-weight:700">LIVE</span>
@@ -2562,10 +2572,10 @@
 
   <!-- ══ GLOBAL TABS ══ -->
   <div id="gtabs">
-    <div class="gtab on" onclick="switchPage('scanner',this)">📊 Scanner <span class="gbadge" id="scanBadge">18</span>
+    <div class="gtab on" onclick="switchPage('scanner',this)">📊 Scanner <span class="gbadge" id="scanBadge">0</span>
     </div>
     <div class="gtab" onclick="switchPage('results',this)">📈 Resultados & Ordens <span class="gbadge gbadge-c"
-        id="ordBadge">47</span></div>
+        id="ordBadge">0</span></div>
     <div class="gtab" onclick="switchPage('api',this)">🔑 API Keys</div>
   </div>
 
@@ -2895,7 +2905,7 @@
           <input class="fi" type="text" id="ordSym" placeholder="BTC..." style="width:50px" oninput="renderOrders()">
           <button class="btn-sm" onclick="exportOrders()">⬇ Export CSV</button>
           <span style="font-size:9px;color:var(--tdim);margin-left:auto">Total: <span id="ordTotal"
-              style="color:var(--cyan);font-weight:700">47</span> trades</span>
+              style="color:var(--cyan);font-weight:700">0</span> trades</span>
         </div>
         <div class="ord-body">
           <table class="ot">
@@ -3039,8 +3049,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#f0b90b">⬡ BingX</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="bingx-dot"></div><span id="bingx-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="bingx-dot"></div><span id="bingx-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3082,8 +3092,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00d4aa">◈ MEXC</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="mexc-dot"></div><span id="mexc-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="mexc-dot"></div><span id="mexc-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3125,8 +3135,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#e6007a">◆ Gate.io</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="gate-dot"></div><span id="gate-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="gate-dot"></div><span id="gate-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3168,7 +3178,7 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#1a73e8">◈ LBank</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="lbank-dot"></div><span id="lbank-status" style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="lbank-dot"></div><span id="lbank-status" style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3203,7 +3213,7 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00c8ff">◆ Bitget</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="bitget-dot"></div><span id="bitget-status" style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="bitget-dot"></div><span id="bitget-status" style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3243,8 +3253,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00ab6c">✦ KuCoin</span>
             <div class="api-card-status">
-              <div class="api-status-dot err" id="kucoin-dot"></div><span id="kucoin-status"
-                style="color:var(--red)">Erro de conexão</span>
+              <div class="api-status-dot off" id="kucoin-dot"></div><span id="kucoin-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3291,6 +3301,82 @@
                 id="kucoin-bal-ts" style="color:var(--dim)">—</span></div>
           </div>
         </div>
+
+        <!-- Bybit -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#f7a600">⬡ Bybit</span>
+            <div class="api-card-status">
+              <div class="api-status-dot off" id="bybit-dot"></div><span id="bybit-status" style="color:var(--dim)">Sem key</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-secret',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bybit-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bybit-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('bybit')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('bybit')">💾 Salvar</button>
+          </div>
+        </div>
+
+        <!-- OKX -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#3c6bfe">◆ OKX</span>
+            <div class="api-card-status">
+              <div class="api-status-dot off" id="okx-dot"></div><span id="okx-status" style="color:var(--dim)">Sem key</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('okx-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('okx-secret',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-pp" placeholder="Passphrase OKX..."><button class="api-eye" onclick="toggleEye('okx-pp',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ FUTURES</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="okx-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="okx-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('okx')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('okx')">💾 Salvar</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -3371,7 +3457,6 @@
 
     const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100, LBank: .100, Bitget: .060 };
     const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null }, LBank: { spot: null, futures: null }, Bitget: { spot: null, futures: null } };
-    const BASE_PRICES = { 'BTC/USDT': 95000, 'ETH/USDT': 3400, 'SOL/USDT': 200, 'BNB/USDT': 650, 'XRP/USDT': 2.5, 'DOGE/USDT': 0.38, 'ADA/USDT': 1.05, 'AVAX/USDT': 42, 'LINK/USDT': 24, 'DOT/USDT': 8.5, 'MATIC/USDT': 0.90, 'LTC/USDT': 120, 'NEAR/USDT': 6.2, 'APT/USDT': 12, 'ARB/USDT': 1.1, 'OP/USDT': 2.1, 'INJ/USDT': 28, 'SUI/USDT': 4.8 };
 
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
     let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
@@ -3399,7 +3484,8 @@
     function loadSavedKeys() {
       EXCHS.forEach(ex => {
         const exl = ex.toLowerCase();
-        const s = lsGet('keys_' + exl); if (!s) return;
+        const s = lsGet('keys_' + exl);
+        if (!s || !s.key) { setApiSt(exl, 'off', 'Sem key'); return; }
         const ki = document.getElementById(exl + '-key'), si = document.getElementById(exl + '-secret');
         if (ki && s.key) { ki.value = s.key; ki.classList.add('valid') }
         if (si && s.secret) { si.value = s.secret; si.classList.add('valid') }
@@ -3589,8 +3675,11 @@
         else if (exl === 'mexc') res = await balMEXC(saved);
         else if (exl === 'gate') res = await balGate(saved);
         else if (exl === 'kucoin') res = await balKuCoin(saved);
+        else if (exl === 'bybit') res = await balBybit(saved);
+        else if (exl === 'okx') res = await balOKX(saved);
+        else res = { error: 'Saldo não implementado para ' + exch };
         // Normaliza nome para bater com chave do objeto BAL
-        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch;
+        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
         if (res.error) {
           setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
           notify('✗ ' + exchKey + ': ' + res.error, 'e');
@@ -3699,6 +3788,56 @@
         } catch (ef) { }
         return { spot, futures: fut };
       } catch (e) { return { error: 'KuCoin: ' + e.message } }
+    }
+    async function balBybit(c) {
+      // Bybit V5 — HMAC-SHA256(ts + apiKey + recvWindow + queryString, secret)
+      try {
+        const ts = (Date.now() + GLOBAL_TS_OFFSET).toString();
+        const recv = '5000';
+        const qSpot = 'accountType=UNIFIED&coin=USDT';
+        const sigSpot = await hmacHex(ts + c.key + recv + qSpot, c.secret);
+        const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-SIGN': sigSpot, 'X-BAPI-RECV-WINDOW': recv };
+        const r = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qSpot, { method: 'GET', headers: h });
+        if (!r) return { error: 'Bybit: sem resposta' };
+        const d = await r.json();
+        if (d.retCode !== 0) return { error: 'Bybit: ' + (d.retMsg || 'code ' + d.retCode) };
+        const coins = d.result?.list?.[0]?.coin || [];
+        const usdt = coins.find(c => c.coin === 'USDT');
+        const spot = parseFloat(usdt?.walletBalance || 0);
+        // Futures balance
+        const qFut = 'accountType=CONTRACT&coin=USDT';
+        const ts2 = (Date.now() + GLOBAL_TS_OFFSET).toString();
+        const sigFut = await hmacHex(ts2 + c.key + recv + qFut, c.secret);
+        const h2 = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts2, 'X-BAPI-SIGN': sigFut, 'X-BAPI-RECV-WINDOW': recv };
+        const r2 = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qFut, { method: 'GET', headers: h2 });
+        let fut = 0;
+        if (r2) { const d2 = await r2.json(); if (d2.retCode === 0) { const c2 = d2.result?.list?.[0]?.coin || []; const u2 = c2.find(x => x.coin === 'USDT'); fut = parseFloat(u2?.walletBalance || 0); } }
+        return { spot, futures: fut };
+      } catch (e) { return { error: 'Bybit: ' + e.message } }
+    }
+    async function balOKX(c) {
+      // OKX V5 — HMAC-SHA256-Base64(ts + 'GET' + path, secret)
+      if (!c.passphrase) return { error: 'OKX: Passphrase obrigatória' };
+      try {
+        const ts = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const path = '/api/v5/asset/balances?ccy=USDT';
+        const sig = await hmacB64(ts + 'GET' + path, c.secret);
+        const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+        const r = await apiFetch('https://www.okx.com' + path, { method: 'GET', headers: h });
+        if (!r) return { error: 'OKX: sem resposta' };
+        const d = await r.json();
+        if (d.code !== '0') return { error: 'OKX: ' + (d.msg || 'code ' + d.code) };
+        const spot = parseFloat(d.data?.[0]?.availBal || 0);
+        // Futures (trading account)
+        const path2 = '/api/v5/account/balance?ccy=USDT';
+        const ts2 = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const sig2 = await hmacB64(ts2 + 'GET' + path2, c.secret);
+        const h2 = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig2, 'OK-ACCESS-TIMESTAMP': ts2, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+        const r2 = await apiFetch('https://www.okx.com' + path2, { method: 'GET', headers: h2 });
+        let fut = 0;
+        if (r2) { const d2 = await r2.json(); if (d2.code === '0') { const det = d2.data?.[0]?.details || []; const u2 = det.find(x => x.ccy === 'USDT'); fut = parseFloat(u2?.availBal || 0); } }
+        return { spot, futures: fut };
+      } catch (e) { return { error: 'OKX: ' + e.message } }
     }
     // ════════════════════════════════════════════════════════
     // PLACE REAL ORDERS
@@ -3817,8 +3956,8 @@
     function setApiSt(exl, state, txt) {
       const dot = document.getElementById(exl + '-dot');
       const stat = document.getElementById(exl + '-status');
-      if (dot) { dot.className = 'asd'; if (state === 'on') dot.classList.add('asd-on'); else if (state === 'err') dot.classList.add('asd-err'); else if (state === 'loading') dot.classList.add('asd-loading') }
-      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--g)' : state === 'err' ? 'var(--r)' : 'var(--y)' }
+      if (dot) { dot.className = 'api-status-dot'; if (state === 'on') dot.classList.add('on'); else if (state === 'err') dot.classList.add('err'); else if (state === 'loading') dot.classList.add('loading'); else dot.classList.add('off') }
+      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--green)' : state === 'err' ? 'var(--red)' : state === 'loading' ? 'var(--yellow)' : 'var(--dim)' }
     }
     function setBalDsp(exl, spot, fut, state) {
       const bs = document.getElementById(exl + '-bal-s'), bf = document.getElementById(exl + '-bal-f');
@@ -4135,15 +4274,15 @@
     }
 
     function renderOB(mid, liq) {
-      const asks = [], bids = []; let al = 0, bl = 0;
+      const asks = [], bids = [];
       const prec = mid > 1000 ? 1 : 4;
-      for (let i = 5; i > 0; i--) { const p = mid * (1 + i * .0003); const q = +(0.5 + Math.random() * 8).toFixed(3); asks.push([p, q, p * q]); al += p * q }
-      for (let i = 1; i <= 5; i++) { const p = mid * (1 - i * .0003); const q = +(0.5 + Math.random() * 8).toFixed(3); bids.push([p, q, p * q]); bl += p * q }
-      const ma = Math.max(...asks.map(a => a[2])), mb = Math.max(...bids.map(b => b[2]));
-      document.getElementById('obAsks').innerHTML = asks.map(a => `<div class="oblv"><div class="obbar obba" style="width:${Math.round(a[2] / ma * 100)}%"></div><span class="obpa">${fmtP(a[0], prec)}</span><span class="obq">${a[1]}</span></div>`).join('');
-      document.getElementById('obBids').innerHTML = bids.map(b => `<div class="oblv"><div class="obbar obbb" style="width:${Math.round(b[2] / mb * 100)}%"></div><span class="obpb">${fmtP(b[0], prec)}</span><span class="obq">${b[1]}</span></div>`).join('');
+      for (let i = 5; i > 0; i--) { asks.push(mid * (1 + i * .0003)); }
+      for (let i = 1; i <= 5; i++) { bids.push(mid * (1 - i * .0003)); }
+      document.getElementById('obAsks').innerHTML = asks.map(p => `<div class="oblv"><span class="obpa">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+      document.getElementById('obBids').innerHTML = bids.map(p => `<div class="oblv"><span class="obpb">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
       (function () { var __t = document.getElementById('obSpD'); if (__t) __t.textContent = '$' + (mid * .0006).toFixed(mid > 1000 ? 2 : 6); })();
-      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(al); })(); (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '$' + fmt(bl); })();
+      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(liq); })();
+      (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '—'; })();
     }
 
     function renderPos() {
@@ -4354,10 +4493,11 @@
     function refresh() { genRows(); applyF(); notify('↺ Scanner atualizado', '') }
 
     async function live() {
+      const _t0 = Date.now();
       await refreshQuotes();
       genRows();
       applyF();
-      (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (1 + Math.floor(Math.random() * 8)) + 'ms'; })();
+      (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (Date.now() - _t0) + 'ms'; })();
       if (filteredRows[selIdx]) renderOB(filteredRows[selIdx].buyAt, filteredRows[selIdx].liq || 0);
       if (positions.length) renderPos();
       updateBalPanel(); renderOverview();
