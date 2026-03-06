@@ -121,6 +121,11 @@
       background: #334
     }
 
+    .ld-err {
+      background: var(--red);
+      box-shadow: 0 0 4px var(--red)
+    }
+
     .stats {
       display: flex;
       gap: 5px;
@@ -2505,18 +2510,13 @@
     <div style="display:flex;align-items:center;gap:10px">
       <div class="logo">ARB<span>·HFT</span></div>
       <div class="leds">
-        <div class="led">
-          <div class="ld ld-on"></div>BingX
-        </div>
-        <div class="led">
-          <div class="ld ld-on"></div>MEXC
-        </div>
-        <div class="led">
-          <div class="ld ld-on"></div>Gate
-        </div>
-        <div class="led">
-          <div class="ld ld-warn"></div>KuCoin
-        </div>
+        <div class="led"><div class="ld ld-off" id="ld-bingx"></div>BingX</div>
+        <div class="led"><div class="ld ld-off" id="ld-mexc"></div>MEXC</div>
+        <div class="led"><div class="ld ld-off" id="ld-gate"></div>Gate</div>
+        <div class="led"><div class="ld ld-off" id="ld-kucoin"></div>KuCoin</div>
+        <div class="led"><div class="ld ld-off" id="ld-binance"></div>Binance</div>
+        <div class="led"><div class="ld ld-off" id="ld-bybit"></div>Bybit</div>
+        <div class="led"><div class="ld ld-off" id="ld-okx"></div>OKX</div>
       </div>
     </div>
     <div class="stats">
@@ -3259,8 +3259,10 @@
     let LAST_FETCH = 0;
     let MODE_WARN_TS = 0;
 
-    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100 };
+    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .080 };
     const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null } };
+    // Exchanges com execução real de ordens implementada no frontend
+    const EXEC_SUPPORTED = new Set(['BingX', 'MEXC', 'Gate', 'KuCoin']);
     const BASE_PRICES = { 'BTC/USDT': 95000, 'ETH/USDT': 3400, 'SOL/USDT': 200, 'BNB/USDT': 650, 'XRP/USDT': 2.5, 'DOGE/USDT': 0.38, 'ADA/USDT': 1.05, 'AVAX/USDT': 42, 'LINK/USDT': 24, 'DOT/USDT': 8.5, 'MATIC/USDT': 0.90, 'LTC/USDT': 120, 'NEAR/USDT': 6.2, 'APT/USDT': 12, 'ARB/USDT': 1.1, 'OP/USDT': 2.1, 'INJ/USDT': 28, 'SUI/USDT': 4.8 };
 
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
@@ -3911,7 +3913,7 @@
           if (sp < 0.01) return;
           const fees = (FEE[bEx] || 0) + (FEE[sEx] || 0);
           const fr = 0;
-          const net = +(sp - fees * 100).toFixed(3);
+          const net = +(sp - fees).toFixed(3);
           const buyAt = +ask.toFixed(ask > 1000 ? 2 : 4);
           const sellAt = +bid.toFixed(bid > 1000 ? 2 : 4);
           let liq = null;
@@ -4078,12 +4080,65 @@
     }
 
     // ════════════════════════════════════════════════════════
+    // CANCEL ORDER — rollback em caso de falha de uma perna
+    // ════════════════════════════════════════════════════════
+    async function cancelOrderOn(exch, sym, orderId, isSpot) {
+      if (!orderId) return;
+      const exl = exch.toLowerCase();
+      const c = lsGet('keys_' + exl);
+      if (!c || !c.key) { console.warn('[ROLLBACK] Sem key para cancelar em ' + exch); return; }
+      try {
+        if (exl === 'bingx') {
+          const sf = sym.replace('/', '').replace('-USDT', '') + '-USDT';
+          const ts = Date.now().toString();
+          const p = 'symbol=' + sf + '&orderId=' + orderId + '&timestamp=' + ts;
+          const sig = await hmacHex(p, c.secret);
+          const ep = isSpot ? '/openApi/spot/v1/trade/cancel' : '/openApi/swap/v2/trade/cancel';
+          await apiFetch('https://open-api.bingx.com' + ep + '?' + p + '&signature=' + sig,
+            { method: 'DELETE', headers: { 'X-BX-APIKEY': c.key } });
+        } else if (exl === 'mexc') {
+          const sf = sym.replace('/', '');
+          const ts = Date.now().toString();
+          const p = 'symbol=' + sf + '&orderId=' + orderId + '&timestamp=' + ts;
+          const sig = await hmacHex(p, c.secret);
+          await apiFetch('https://api.mexc.com/api/v3/order?' + p + '&signature=' + sig,
+            { method: 'DELETE', headers: { 'X-MEXC-APIKEY': c.key } });
+        } else if (exl === 'gate') {
+          const sf = sym.replace('/', '_');
+          const tsSec = Math.floor(Date.now() / 1000).toString();
+          const path = '/api/v4/spot/orders/' + orderId;
+          const q = 'currency_pair=' + sf;
+          const signStr = 'DELETE\n' + path + '\n' + q + '\n\n' + tsSec;
+          const sig = await hmacHex(signStr, c.secret, 'SHA-512');
+          await apiFetch('https://api.gateio.ws' + path + '?' + q,
+            { method: 'DELETE', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec } });
+        } else if (exl === 'kucoin') {
+          const ts = Date.now().toString();
+          const path = '/api/v1/orders/' + orderId;
+          const sig = await hmacB64(ts + 'DELETE' + path, c.secret);
+          const pp = await hmacB64(c.passphrase, c.secret);
+          await apiFetch('https://api.kucoin.com' + path,
+            { method: 'DELETE', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2' } });
+        }
+        console.log('[ROLLBACK] Ordem ' + orderId + ' cancelada em ' + exch);
+      } catch (e) {
+        console.error('[ROLLBACK] Falha ao cancelar ' + orderId + ' em ' + exch + ': ' + errMsg(e));
+        notify('ATENCAO: rollback falhou em ' + exch + ' — verifique a ordem #' + orderId + ' manualmente', 'e');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════
     // ARB EXECUTION
     // ════════════════════════════════════════════════════════
     function doArb() {
       const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
       const usdt = getOrderUSDT(); if (usdt <= 0) { notify('⚠ Defina a quantidade', 'w'); return }
       const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
+      const unsup = [bex, sex].filter(e => !EXEC_SUPPORTED.has(e));
+      if (unsup.length) {
+        notify('⚠ ' + unsup.join(' e ') + ' ainda não tem execução implementada. Use: BingX, MEXC, Gate ou KuCoin', 'w');
+        return;
+      }
       const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
       const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
       const mode = document.getElementById('arbMode').value;
@@ -4114,21 +4169,36 @@
       const hasBuyKey = !!lsGet('keys_' + bex.toLowerCase());
       const hasSellKey = !!lsGet('keys_' + sex.toLowerCase());
       if (!hasBuyKey || !hasSellKey) {
-        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), ' w');
+        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), 'w');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled'); return;
       }
-      notify('⚡ Enviando ARB ' + r.sym + '...', '');
+
+      // PERNA 1: BUY
+      notify('⚡ Perna 1/2 — BUY ' + r.sym + ' em ' + bex + '...', '');
+      let buyRes;
       try {
-        const [buyRes, sellRes] = await Promise.all([
-          placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy),
-          placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell)
-        ]);
-        notify('✓ ARB executado! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
-        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
+        buyRes = await placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy);
       } catch (err) {
-        notify('✗ Falha: ' + errMsg(err), 'e');
+        notify('✗ BUY falhou em ' + bex + ': ' + errMsg(err), 'e');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+        return;
       }
+
+      // PERNA 2: SELL — se falhar, cancela o BUY (rollback)
+      notify('⚡ Perna 2/2 — SELL ' + r.sym + ' em ' + sex + '...', '');
+      let sellRes;
+      try {
+        sellRes = await placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell);
+      } catch (err) {
+        notify('✗ SELL falhou em ' + sex + ' — iniciando rollback do BUY #' + buyRes.orderId + '...', 'e');
+        await cancelOrderOn(bex, r.sym, buyRes.orderId, isSpotBuy);
+        notify('↩ Rollback concluido. Nenhuma posicao aberta.', 'w');
+        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+        return;
+      }
+
+      notify('✓ ARB completo! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
+      registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
     }
 
     function registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, status, bOid, sOid) {
@@ -4295,12 +4365,15 @@
         LAST_FETCH = now;
         for (const ex of EXCHS) {
           if (!QUOTES[ex]) QUOTES[ex] = {};
+          let anyOk = false;
           for (const sym of PAIRS) {
             const q = await fetchQuote(ex, sym);
             if (q && q.ask > 0 && q.bid > 0) {
               QUOTES[ex][sym] = { ...q, ts: now };
+              anyOk = true;
             }
           }
+          updateLed(ex.toLowerCase(), anyOk ? 'on' : 'warn');
         }
       });
     }
