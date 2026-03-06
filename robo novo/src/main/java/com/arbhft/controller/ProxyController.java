@@ -61,6 +61,13 @@ public class ProxyController {
             });
         if(body!=null&&!body.isBlank())req.contentType(MediaType.APPLICATION_JSON).bodyValue(body);
         return req.retrieve().toEntity(String.class)
+            .map(entity -> {
+                HttpHeaders out = new HttpHeaders();
+                entity.getHeaders().forEach((k, v) -> {
+                    if (!"transfer-encoding".equalsIgnoreCase(k)) out.put(k, v);
+                });
+                return ResponseEntity.status(entity.getStatusCode()).headers(out).body(entity.getBody());
+            })
             .onErrorResume(WebClientResponseException.class,e->{
                 System.out.println("[PROXY] "+e.getStatusCode()+" body: "+e.getResponseBodyAsString());
                 return Mono.just(ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString()));
