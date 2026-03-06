@@ -3351,7 +3351,7 @@
     // ════════════════════════════════════════════════════════
     // FETCH with CORS proxy fallback
     // ════════════════════════════════════════════════════════
-    const DEFAULT_PROXY_BASE = 'https://major-magpie-grossly.ngrok-free.app';
+    const DEFAULT_PROXY_BASE = '';
     function getProxyBase() {
       try {
         const qp = new URLSearchParams(location.search).get('proxy');
@@ -3387,7 +3387,6 @@
         } else {
           const h = { ...(opts.headers || {}) };
           delete h['content-length']; delete h['Content-Length'];
-          h['ngrok-skip-browser-warning'] = '1';
           const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
           if (r.ok || r.status < 500) return r;
         }
