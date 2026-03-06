@@ -4362,6 +4362,8 @@
       (function () { var __t = document.getElementById('posCount'); if (__t) __t.textContent = positions.length; })();
       if (!tbody) return;
       if (!positions.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:8px;font-size:9px">Nenhuma posição aberta</td></tr>'; return }
+      // Atualiza preço atual de cada posição com cotação live (bid do exchange de compra)
+      positions.forEach(p => { const q = QUOTES[p.bEx]?.[p.sym]; if (q && q.bid > 0) p.cur = q.bid; });
       tbody.innerHTML = positions.map((p, i) => {
         const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
         const pp = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
@@ -4428,6 +4430,65 @@
       const blob = new Blob([hdr + rows], { type: 'text/csv' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'arb-trades-' + Date.now() + '.csv'; a.click();
       notify('⬇ CSV exportado', 'c');
+    }
+
+    // ════════════════════════════════════════════════════════
+    // CANCEL ORDER — real API por exchange
+    // ════════════════════════════════════════════════════════
+    async function cancelExchangeOrder(exch, sym, orderId, isSpot) {
+      if (!orderId) return;
+      const exl = exch.toLowerCase();
+      const c = lsGet('keys_' + exl);
+      if (!c || !c.key) throw new Error('Key ' + exch + ' não configurada');
+      const ts = Date.now().toString();
+      if (exl === 'bingx') {
+        const sf = sym.replace('/', '').replace('-USDT', '') + '-USDT';
+        const ep = isSpot ? '/openApi/spot/v1/trade/order' : '/openApi/swap/v2/trade/order';
+        const p = 'symbol=' + sf + '&orderId=' + orderId + '&timestamp=' + ts + '&recvWindow=5000';
+        const sig = await hmacHex(p, c.secret);
+        const r = await apiFetch('https://open-api.bingx.com' + ep + '?' + p + '&signature=' + sig, { method: 'DELETE', headers: { 'X-BX-APIKEY': c.key } });
+        const d = await r.json(); if (d.code !== 0) throw new Error('BingX: ' + (d.msg || d.code)); return d;
+      }
+      if (exl === 'mexc') {
+        const sf = sym.replace('/', '');
+        const p = 'symbol=' + sf + '&orderId=' + orderId + '&timestamp=' + ts + '&recvWindow=5000';
+        const sig = await hmacHex(p, c.secret);
+        const r = await apiFetch('https://api.mexc.com/api/v3/order?' + p + '&signature=' + sig, { method: 'DELETE', headers: { 'X-MEXC-APIKEY': c.key } });
+        const d = await r.json(); if (d.code && d.code !== 200) throw new Error('MEXC: ' + (d.msg || d.code)); return d;
+      }
+      if (exl === 'gate') {
+        const sf = sym.replace('/', '_');
+        const tsSec = Math.floor(Date.now() / 1000).toString();
+        const query = 'currency_pair=' + sf;
+        const path = '/api/v4/spot/orders/' + orderId;
+        const bh = await sha512hex('');
+        const sig = await hmacHex('DELETE\n' + path + '\n' + query + '\n' + bh + '\n' + tsSec, c.secret, 'SHA-512');
+        const r = await apiFetch('https://api.gateio.ws' + path + '?' + query, { method: 'DELETE', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec, 'Content-Type': 'application/json' } });
+        const d = await r.json(); if (d.label) throw new Error('Gate: ' + d.label); return d;
+      }
+      if (exl === 'kucoin') {
+        const path = '/api/v1/orders/' + orderId;
+        const sig = await hmacB64(ts + 'DELETE' + path, c.secret);
+        const pp = await hmacB64(c.passphrase, c.secret);
+        const r = await apiFetch('https://api.kucoin.com' + path, { method: 'DELETE', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' } });
+        const d = await r.json(); if (d.code !== '200000') throw new Error('KuCoin: ' + (d.msg || d.code)); return d;
+      }
+      if (exl === 'bybit') {
+        const recv = '5000'; const sf = sym.replace('/', '');
+        const bodyStr = JSON.stringify({ category: isSpot ? 'spot' : 'linear', symbol: sf, orderId });
+        const sig = await hmacHex(ts + c.key + recv + bodyStr, c.secret);
+        const r = await apiFetch('https://api.bybit.com/v5/order/cancel', { method: 'POST', headers: { 'X-BAPI-API-KEY': c.key, 'X-BAPI-SIGN': sig, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': recv, 'Content-Type': 'application/json' }, body: bodyStr });
+        const d = await r.json(); if (d.retCode !== 0) throw new Error('Bybit: ' + (d.retMsg || d.retCode)); return d;
+      }
+      if (exl === 'okx') {
+        const tsOkx = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const path = '/api/v5/trade/cancel-order';
+        const bodyStr = JSON.stringify({ instId: sym.replace('/', '-'), ordId: orderId });
+        const sig = await hmacB64(tsOkx + 'POST' + path + bodyStr, c.secret);
+        const r = await apiFetch('https://www.okx.com' + path, { method: 'POST', headers: { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': tsOkx, 'OK-ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' }, body: bodyStr });
+        const d = await r.json(); if (d.code !== '0') throw new Error('OKX: ' + (d.msg || d.code)); return d;
+      }
+      throw new Error(exch + ': cancel não suportado');
     }
 
     // ════════════════════════════════════════════════════════
@@ -4539,24 +4600,48 @@
     // ════════════════════════════════════════════════════════
     // POSITIONS
     // ════════════════════════════════════════════════════════
-    function closeP(i) {
+    async function closeP(i) {
       const p = positions[i]; if (!p) return;
-      const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
-      const pnlPct = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
+      const isSpotB = p.type === 'SS' || p.type === 'SF';
+      const isSpotS = p.type === 'SS' || p.type === 'FS';
+      // Cancela a perna SELL na exchange (se ainda aberta)
+      if (p.sOid) {
+        try { await cancelExchangeOrder(p.sEx, p.sym, p.sOid, isSpotS); }
+        catch (e) { console.warn('[CLOSE] Cancel sell failed:', e.message); }
+      }
+      // Vende os tokens comprados a preço de mercado (limit agressivo no bid atual)
+      const curBid = QUOTES[p.bEx]?.[p.sym]?.bid || p.cur;
+      const sellPrice = (curBid > 0 ? curBid : p.cur) * 0.999;
+      let sellRes;
+      try {
+        sellRes = await placeRealOrder(p.bEx, p.sym, 'sell', p.token, sellPrice, isSpotB);
+      } catch (e) {
+        notify('⚠ MKT SELL falhou em ' + p.bEx + ': ' + e.message + ' — verifique manualmente', 'e');
+        return;
+      }
+      const pnl = (sellPrice - p.entry) / p.entry * (p.usdt || 0);
+      const pnlPct = (sellPrice - p.entry) / p.entry * 100;
       const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
       if (t) { t.status = 'closed'; t.pnlUsd = pnl; t.pnlPct = pnlPct; lsSet('trades', tradeHistory.slice(-500)) }
       positions.splice(i, 1); lsSet('positions', positions);
-      notify('✕ ' + p.sym + ' fechado | PnL: ' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2), 'w');
+      notify('✕ ' + p.sym + ' fechado MKT #' + (sellRes.orderId || '?') + ' | PnL: ' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2), pnl >= 0 ? 'g' : 'w');
       renderPos(); renderOverview();
     }
-    function cancelP(i) {
+    async function cancelP(i) {
       const p = positions[i]; if (!p) return;
+      const isSpotB = p.type === 'SS' || p.type === 'SF';
+      const isSpotS = p.type === 'SS' || p.type === 'FS';
+      const errs = [];
+      if (p.bOid) { try { await cancelExchangeOrder(p.bEx, p.sym, p.bOid, isSpotB); } catch (e) { errs.push(p.bEx + ': ' + e.message); } }
+      if (p.sOid) { try { await cancelExchangeOrder(p.sEx, p.sym, p.sOid, isSpotS); } catch (e) { errs.push(p.sEx + ': ' + e.message); } }
       const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
       if (t) { t.status = 'cancelled'; lsSet('trades', tradeHistory.slice(-500)) }
       positions.splice(i, 1); lsSet('positions', positions);
-      notify('✕ Ordens ' + p.sym + ' canceladas', 'w'); renderPos(); renderOverview();
+      if (errs.length) notify('⚠ Cancel parcial: ' + errs.join(' | '), 'w');
+      else notify('✕ Ordens ' + p.sym + ' canceladas na exchange', 'g');
+      renderPos(); renderOverview();
     }
-    function cancelAll() { const len = positions.length; for (let i = 0; i < len; i++)cancelP(0); notify('✕ Todas as ordens canceladas', 'w') }
+    async function cancelAll() { const len = positions.length; for (let i = 0; i < len; i++) await cancelP(0); notify('✕ Todas as ordens canceladas', 'w') }
 
     function setPct(v, el) { pctVal = v; document.querySelectorAll('.qpct').forEach(b => b.classList.remove('on')); if (el) el.classList.add('on') }
     function qClose(side) {
@@ -4576,7 +4661,7 @@
       document.getElementById('exitModal').classList.add('open');
     }
     function reRenderExit() { if (positions.length) openExit(); else closeExit() }
-    function closeAll() { closeExit(); const len = positions.length; for (let i = 0; i < len; i++)closeP(0); notify('🔴 TUDO FECHADO', 'e') }
+    async function closeAll() { closeExit(); const len = positions.length; for (let i = 0; i < len; i++) await closeP(0); notify('🔴 TUDO FECHADO', 'e') }
     function closeExit() { document.getElementById('exitModal').classList.remove('open') }
 
     // ════════════════════════════════════════════════════════
