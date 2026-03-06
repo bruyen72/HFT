@@ -4606,103 +4606,117 @@
 
     // ════════════════════════════════════════════════════════
 
-    function mapSymbol(ex, sym) {
-      const s = sym.replace('/', '');
-      if (ex === 'KuCoin' || ex === 'OKX') return sym.replace('/', '-');
-      if (ex === 'Gate') return sym.replace('/', '_');
-      if (ex === 'BingX') return sym.replace('/', '-');
-      if (ex === 'LBank') return sym.replace('/', '_').toLowerCase();
-      if (ex === 'Bitget') return sym.replace('/', '');
-      return s;
-    }
-    async function fetchQuote(ex, sym) {
-      const exl = ex.toLowerCase();
-      const s = mapSymbol(ex, sym);
+    // Bulk fetch: 1 request por exchange, retorna {sym: {bid,ask,bidQty,askQty}}
+    async function fetchAllQuotes(ex) {
+      const result = {};
       try {
         if (ex === 'Binance') {
-          const r = await apiFetch('https://api.binance.com/api/v3/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
-        }
-        if (ex === 'MEXC') {
-          const r = await apiFetch('https://api.mexc.com/api/v3/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
-        }
-        if (ex === 'KuCoin') {
-          // KuCoin removeu CORS público — rota pelo proxy como as demais exchanges
-          // Se Oracle Cloud estiver bloqueado pela KuCoin, retorna null silenciosamente
-          const r = await apiFetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { method: 'GET' }, true);
-          if (!r || !r.ok) return null; const d = await r.json();
-          if (d.code !== '200000') return null;
-          const data = d.data || {};
-          return { bid: parseFloat(data.buy || 0), ask: parseFloat(data.sell || 0), bidQty: 0, askQty: 0 };
-        }
-        if (ex === 'Gate') {
-          const r = await apiFetch('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          const it = Array.isArray(d) ? d[0] : null;
-          return { bid: parseFloat(it?.highest_bid || 0), ask: parseFloat(it?.lowest_ask || 0), bidQty: parseFloat(it?.highest_bid_size || 0), askQty: parseFloat(it?.lowest_ask_size || 0) };
-        }
-        if (ex === 'Bybit') {
-          const r = await apiFetch('https://api.bybit.com/v5/market/orderbook?category=spot&symbol=' + s + '&limit=1', { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          const b = d?.result?.b?.[0]; const a = d?.result?.a?.[0];
-          return { bid: parseFloat(b?.[0] || 0), ask: parseFloat(a?.[0] || 0), bidQty: parseFloat(b?.[1] || 0), askQty: parseFloat(a?.[1] || 0) };
-        }
-        if (ex === 'OKX') {
-          const r = await apiFetch('https://www.okx.com/api/v5/market/books?instId=' + s + '&sz=1', { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          const b = d?.data?.[0]?.bids?.[0]; const a = d?.data?.[0]?.asks?.[0];
-          return { bid: parseFloat(b?.[0] || 0), ask: parseFloat(a?.[0] || 0), bidQty: parseFloat(b?.[1] || 0), askQty: parseFloat(a?.[1] || 0) };
-        }
-        if (ex === 'BingX') {
-          const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null;
-          if (!r.ok) {
-            if (r.status === 403) console.warn('[QUOTE] BingX 403 (blocked by origin/IP)');
-            return null;
+          const r = await apiFetch('https://api.binance.com/api/v3/ticker/bookTicker', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const data = await r.json();
+          if (!Array.isArray(data)) return result;
+          const lk = {}; data.forEach(d => { lk[d.symbol] = d; });
+          for (const sym of PAIRS) {
+            const d = lk[sym.replace('/', '')];
+            if (d) result[sym] = { bid: parseFloat(d.bidPrice||0), ask: parseFloat(d.askPrice||0), bidQty: parseFloat(d.bidQty||0), askQty: parseFloat(d.askQty||0) };
           }
+        } else if (ex === 'MEXC') {
+          const r = await apiFetch('https://api.mexc.com/api/v3/ticker/bookTicker', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const data = await r.json();
+          if (!Array.isArray(data)) return result;
+          const lk = {}; data.forEach(d => { lk[d.symbol] = d; });
+          for (const sym of PAIRS) {
+            const d = lk[sym.replace('/', '')];
+            if (d) result[sym] = { bid: parseFloat(d.bidPrice||0), ask: parseFloat(d.askPrice||0), bidQty: parseFloat(d.bidQty||0), askQty: parseFloat(d.askQty||0) };
+          }
+        } else if (ex === 'Gate') {
+          const r = await apiFetch('https://api.gateio.ws/api/v4/spot/tickers', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const data = await r.json();
+          if (!Array.isArray(data)) return result;
+          const lk = {}; data.forEach(d => { lk[d.currency_pair] = d; });
+          for (const sym of PAIRS) {
+            const d = lk[sym.replace('/', '_')];
+            if (d) result[sym] = { bid: parseFloat(d.highest_bid||0), ask: parseFloat(d.lowest_ask||0), bidQty: parseFloat(d.highest_bid_size||0), askQty: parseFloat(d.lowest_ask_size||0) };
+          }
+        } else if (ex === 'KuCoin') {
+          const r = await apiFetch('https://api.kucoin.com/api/v1/market/allTickers', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
           const d = await r.json();
-          const data = Array.isArray(d?.data) ? (d.data[0] || {}) : (d?.data || {});
-          return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidVolume || data.bidQty || 0), askQty: parseFloat(data.askVolume || data.askQty || 0) };
-        }
-        if (ex === 'LBank') {
-          const r = await apiFetch('https://api.lbkex.com/v2/depth.do?symbol=' + s + '&size=1', { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          if (d.result !== 'true' && d.result !== true) return null;
-          const bids = d.data?.bids; const asks = d.data?.asks;
-          if (!bids?.length || !asks?.length) return null;
-          return { bid: parseFloat(bids[0][0] || 0), ask: parseFloat(asks[0][0] || 0), bidQty: parseFloat(bids[0][1] || 0), askQty: parseFloat(asks[0][1] || 0) };
-        }
-        if (ex === 'Bitget') {
-          const r = await apiFetch('https://api.bitget.com/api/v2/spot/market/tickers?symbol=' + s, { method: 'GET' }, true);
-          if (!r) return null; const d = await r.json();
-          if (d.code !== '00000') return null;
-          const it = Array.isArray(d.data) ? d.data[0] : null;
-          if (!it) return null;
-          return { bid: parseFloat(it.bidPr || 0), ask: parseFloat(it.askPr || 0), bidQty: parseFloat(it.bidSz || 0), askQty: parseFloat(it.askSz || 0) };
+          if (d.code !== '200000') return result;
+          const lk = {}; (d.data?.ticker || []).forEach(t => { lk[t.symbol] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '-')];
+            if (t) result[sym] = { bid: parseFloat(t.buy||0), ask: parseFloat(t.sell||0), bidQty: 0, askQty: 0 };
+          }
+        } else if (ex === 'BingX') {
+          const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const d = await r.json();
+          const lk = {}; (Array.isArray(d?.data) ? d.data : []).forEach(t => { lk[t.symbol] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '-')];
+            if (t) result[sym] = { bid: parseFloat(t.bidPrice||0), ask: parseFloat(t.askPrice||0), bidQty: parseFloat(t.bidVolume||t.bidQty||0), askQty: parseFloat(t.askVolume||t.askQty||0) };
+          }
+        } else if (ex === 'Bybit') {
+          const r = await apiFetch('https://api.bybit.com/v5/market/tickers?category=spot', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const d = await r.json();
+          const lk = {}; (d?.result?.list || []).forEach(t => { lk[t.symbol] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '')];
+            if (t) result[sym] = { bid: parseFloat(t.bid1Price||0), ask: parseFloat(t.ask1Price||0), bidQty: parseFloat(t.bid1Size||0), askQty: parseFloat(t.ask1Size||0) };
+          }
+        } else if (ex === 'OKX') {
+          const r = await apiFetch('https://www.okx.com/api/v5/market/tickers?instType=SPOT', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const d = await r.json();
+          const lk = {}; (d?.data || []).forEach(t => { lk[t.instId] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '-')];
+            if (t) result[sym] = { bid: parseFloat(t.bidPx||0), ask: parseFloat(t.askPx||0), bidQty: parseFloat(t.bidSz||0), askQty: parseFloat(t.askSz||0) };
+          }
+        } else if (ex === 'LBank') {
+          // LBank bulk retorna last price (sem bid/ask); usa como aproximação
+          const r = await apiFetch('https://api.lbkex.com/v2/ticker.do?symbol=all', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const d = await r.json();
+          if (d.result !== 'true' && d.result !== true) return result;
+          const lk = {}; (Array.isArray(d.data) ? d.data : []).forEach(t => { lk[t.symbol] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '_').toLowerCase()];
+            if (t) { const p = parseFloat(t.ticker?.latest||0); if (p > 0) result[sym] = { bid: p, ask: p, bidQty: 0, askQty: 0 }; }
+          }
+        } else if (ex === 'Bitget') {
+          const r = await apiFetch('https://api.bitget.com/api/v2/spot/market/tickers', { method: 'GET' }, true);
+          if (!r || !r.ok) return result;
+          const d = await r.json();
+          if (d.code !== '00000') return result;
+          const lk = {}; (Array.isArray(d.data) ? d.data : []).forEach(t => { lk[t.symbol] = t; });
+          for (const sym of PAIRS) {
+            const t = lk[sym.replace('/', '')];
+            if (t) result[sym] = { bid: parseFloat(t.bidPr||0), ask: parseFloat(t.askPr||0), bidQty: parseFloat(t.bidSz||0), askQty: parseFloat(t.askSz||0) };
+          }
         }
       } catch (e) {
-        console.warn('[QUOTE] ' + ex + ' ' + sym + ': ' + errMsg(e));
+        console.warn('[BULK] ' + ex + ': ' + errMsg(e));
       }
-      return null;
+      return result;
     }
     async function refreshQuotes() {
       return withLock('refreshQuotes', async () => {
         const now = Date.now();
         if (now - LAST_FETCH < 1200) return;
         LAST_FETCH = now;
-        // Busca todas as exchanges em paralelo (cada exchange busca seus pares sequencialmente)
+        // 9 requests bulk (1 por exchange) em vez de 162 requests individuais
         await Promise.all(EXCHS.map(async ex => {
           if (!QUOTES[ex]) QUOTES[ex] = {};
+          const quotes = await fetchAllQuotes(ex);
           let ok = 0;
           for (const sym of PAIRS) {
-            const q = await fetchQuote(ex, sym);
-            if (q && q.ask > 0 && q.bid > 0) {
-              QUOTES[ex][sym] = { ...q, ts: now };
-              ok++;
-            }
+            const q = quotes[sym];
+            if (q && q.ask > 0 && q.bid > 0) { QUOTES[ex][sym] = { ...q, ts: now }; ok++; }
           }
           updateLed(ex.toLowerCase(), ok > 0 ? 'on' : 'err');
         }));
