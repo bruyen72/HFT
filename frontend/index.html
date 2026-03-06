@@ -3761,7 +3761,7 @@
       led.style.background = 'var(--yellow)';
       led.title = 'Verificando...';
       try {
-        const r = await fetch(pb + '/proxy?_target=' + encodeURIComponent('https://api.binance.com/api/v3/ping'), { signal: AbortSignal.timeout(6000) });
+        const r = await fetch(pb + '/proxy?_target=' + encodeURIComponent('https://api.bybit.com/v5/market/time'), { signal: AbortSignal.timeout(6000) });
         const ok = r.ok || r.status < 500;
         led.style.background = ok ? 'var(--green)' : 'var(--red)';
         led.title = ok ? 'Proxy OK: ' + pb : 'Proxy erro ' + r.status + ': ' + pb;
