@@ -1,0 +1,670 @@
+  4000→      if (!led) return;
+  4001→      const pb = getProxyBase();
+  4002→      if (!pb) { led.style.background = '#334'; return; }
+  4003→      led.style.background = 'var(--yellow)';
+  4004→      led.title = 'Verificando...';
+  4005→      try {
+  4006→        const r = await fetch(pb + '/proxy?_target=' + encodeURIComponent('https://api.bybit.com/v5/market/time'), { signal: AbortSignal.timeout(6000) });
+  4007→        const ok = r.ok || r.status < 500;
+  4008→        led.style.background = ok ? 'var(--green)' : 'var(--red)';
+  4009→        led.title = ok ? 'Proxy OK: ' + pb : 'Proxy erro ' + r.status + ': ' + pb;
+  4010→      } catch (e) {
+  4011→        led.style.background = 'var(--red)';
+  4012→        led.title = 'Proxy offline: ' + (e.message || pb);
+  4013→      }
+  4014→    }
+  4015→    function notify(msg, type = '') {
+  4016→      const el = document.createElement('div');
+  4017→      el.className = 'ni' + (type ? ' ' + type : ''); el.textContent = msg;
+  4018→      document.getElementById('notif').appendChild(el);
+  4019→      setTimeout(() => el.remove(), 4000);
+  4020→    }
+  4021→    function errMsg(err) {
+  4022→      if (!err) return 'Erro desconhecido';
+  4023→      if (err.message) return err.message;
+  4024→      try { return JSON.stringify(err); } catch (e) { return String(err) }
+  4025→    }
+  4026→    const _locks = new Map();
+  4027→    async function withLock(key, fn, ms = 800) {
+  4028→      if (_locks.get(key)) return null;
+  4029→      _locks.set(key, true);
+  4030→      try { return await fn(); }
+  4031→      finally {
+  4032→        setTimeout(() => _locks.delete(key), ms);
+  4033→      }
+  4034→    }
+  4035→    function clampNum(v, min = 0, max = null, dec = 8) {
+  4036→      let n = parseFloat(v);
+  4037→      if (isNaN(n) || !isFinite(n)) n = min;
+  4038→      if (n < min) n = min;
+  4039→      if (max !== null && n > max) n = max;
+  4040→      const f = Math.pow(10, dec);
+  4041→      return Math.round(n * f) / f;
+  4042→    }
+  4043→    function normalizeNumberInput(id, min = 0, max = null, dec = 8) {
+  4044→      const el = document.getElementById(id);
+  4045→      if (!el) return;
+  4046→      el.value = clampNum(el.value, min, max, dec);
+  4047→    }
+  4048→    function toggleLimitInputs() {
+  4049→      const t = document.getElementById('ordType')?.value || 'LIMIT';
+  4050→      const lb = document.getElementById('lBuy');
+  4051→      const ls = document.getElementById('lSell');
+  4052→      const isMarket = t === 'MARKET';
+  4053→      if (lb) lb.disabled = isMarket;
+  4054→      if (ls) ls.disabled = isMarket;
+  4055→      if (isMarket) {
+  4056→        const r = filteredRows[selIdx];
+  4057→        if (r) {
+  4058→          if (lb) lb.value = r.buyAt;
+  4059→          if (ls) ls.value = r.sellAt;
+  4060→        }
+  4061→      }
+  4062→    }
+  4063→    window.addEventListener('unhandledrejection', e => {
+  4064→      console.warn('[UNHANDLED]', errMsg(e.reason));
+  4065→      e.preventDefault();
+  4066→    });
+  4067→    function fmt(n) {
+  4068→      if (n == null || n === undefined) return '—'; n = parseFloat(n); if (isNaN(n)) return '—';
+  4069→      if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return n.toFixed(2);
+  4070→    }
+  4071→    function fmtP(n, dec = 2) { if (n == null) return '—'; return parseFloat(n).toFixed(dec) }
+  4072→    function fmtDate(d) { if (!d) return '—'; const dt = d instanceof Date ? d : new Date(d); return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }
+  4073→
+  4074→    // ════════════════════════════════════════════════════════
+  4075→    // BALANCE PANEL — real values from BAL
+  4076→    // ════════════════════════════════════════════════════════
+  4077→    function getArbMode() { return document.getElementById('arbMode')?.value || 'SS' }
+  4078→    function getBuyExch() { return document.getElementById('buyEx')?.value || 'BingX' }
+  4079→    function getSellExch() { return document.getElementById('sellEx')?.value || 'MEXC' }
+  4080→    function getBuyType() { const m = getArbMode(); return (m === 'FF' || m === 'FS') ? 'futures' : 'spot' }
+  4081→    function getSellType() { const m = getArbMode(); return (m === 'FF' || m === 'SF') ? 'futures' : 'spot' }
+  4082→    function getAvailBuy() { const b = BAL[getBuyExch()]; if (!b) return 0; return b[getBuyType()] || 0 }
+  4083→    function getAvailSell() { const b = BAL[getSellExch()]; if (!b) return 0; return b[getSellType()] || 0 }
+  4084→    function getMaxUsdt() { return Math.min(getAvailBuy() || 0, getAvailSell() || 0) }
+  4085→    function getCurrentPrice() { const r = filteredRows[selIdx]; return r ? r.buyAt : 0 }
+  4086→    function getBuyBase() { const r = filteredRows[selIdx]; return r ? r.sym.split('/')[0] : 'TOKEN' }
+  4087→
+  4088→    function updateBalPanel() {
+  4089→      const buyExch = getBuyExch(), sellExch = getSellExch();
+  4090→      const buyType = getBuyType(), sellType = getSellType();
+  4091→      const buyBal = getAvailBuy(), sellBal = getAvailSell();
+  4092→      const price = getCurrentPrice();
+  4093→      (function () { var __t = document.getElementById('balBuyName'); if (__t) __t.textContent = buyExch; })();
+  4094→      (function () { var __t = document.getElementById('balSellName'); if (__t) __t.textContent = sellExch; })();
+  4095→      (function () { var __t = document.getElementById('balBuyType'); if (__t) __t.textContent = buyType.toUpperCase(); })();
+  4096→      (function () { var __t = document.getElementById('balSellType'); if (__t) __t.textContent = sellType.toUpperCase(); })();
+  4097→      const bbu = document.getElementById('balBuyUsdt'), bsu = document.getElementById('balSellUsdt');
+  4098→      const bbt = document.getElementById('balBuyAsset'), bst = document.getElementById('balSellAsset');
+  4099→      if (bbu && BAL[buyExch] && BAL[buyExch][buyType] === null) { bbu.className = 'balusdt nokey'; bbu.textContent = 'Configure key →'; if (bbt) bbt.textContent = '' }
+  4100→      else if (bbu) { bbu.className = 'balusdt ' + (buyBal > 100 ? 'ok' : buyBal > 10 ? 'low' : 'empty'); bbu.textContent = '$' + fmt(buyBal); if (bbt && price > 0) bbt.textContent = '≈ ' + (buyBal / price).toFixed(6) + ' ' + getBuyBase(); else if (bbt) bbt.textContent = '' }
+  4101→      if (bsu && BAL[sellExch] && BAL[sellExch][sellType] === null) { bsu.className = 'balusdt nokey'; bsu.textContent = 'Configure key →'; if (bst) bst.textContent = '' }
+  4102→      else if (bsu) { bsu.className = 'balusdt ' + (sellBal > 100 ? 'ok' : sellBal > 10 ? 'low' : 'empty'); bsu.textContent = '$' + fmt(sellBal); if (bst && price > 0) bst.textContent = '≈ ' + (sellBal / price).toFixed(6) + ' ' + getBuyBase(); else if (bst) bst.textContent = '' }
+  4103→      updateQtyDisplay();
+  4104→    }
+  4105→
+  4106→    function updateQtyDisplay() {
+  4107→      const maxU = getMaxUsdt(), price = getCurrentPrice();
+  4108→      const rawVal = parseFloat(document.getElementById('qty')?.value || '0') || 0;
+  4109→      let usdt = 0, token = 0;
+  4110→      if (qtyMode === 'usdt') { usdt = rawVal; token = price > 0 ? usdt / price : 0 }
+  4111→      else { token = rawVal; usdt = price > 0 ? token * price : 0 }
+  4112→      (function () { var __t = document.getElementById('qtyResUsdt'); if (__t) __t.textContent = usdt > 0 ? '$' + fmt(usdt) : '—'; })();
+  4113→      (function () { var __t = document.getElementById('qtyResAsset'); if (__t) __t.textContent = token > 0 ? token.toFixed(6) + ' ' + getBuyBase() : '—'; })();
+  4114→      (function () { var __t = document.getElementById('qtyUnit'); if (__t) __t.textContent = qtyMode === 'usdt' ? 'USDT' : getBuyBase(); })();
+  4115→      const warn = document.getElementById('qtyInsuf');
+  4116→      const buyB = getAvailBuy(), sellB = getAvailSell();
+  4117→      if (warn) { if (buyB > 0 && sellB > 0 && usdt > 0 && (usdt > buyB || usdt > sellB)) warn.classList.add('show'); else warn.classList.remove('show'); }
+  4118→    }
+  4119→
+  4120→    function setQtyMode(mode) {
+  4121→      qtyMode = mode;
+  4122→      document.getElementById('modeUsdt')?.classList.toggle('on', mode === 'usdt');
+  4123→      document.getElementById('modeToken')?.classList.toggle('on', mode === 'token');
+  4124→      document.getElementById('qty').value = '';
+  4125→      document.getElementById('qty').placeholder = mode === 'usdt' ? 'USDT...' : 'Tokens...';
+  4126→      updateQtyDisplay();
+  4127→    }
+  4128→
+  4129→    function setQtyPct(pct, el) {
+  4130→      document.querySelectorAll('.qpb').forEach(b => b.classList.remove('on'));
+  4131→      if (el) el.classList.add('on');
+  4132→      const maxU = getMaxUsdt(), price = getCurrentPrice();
+  4133→      if (qtyMode === 'usdt') { document.getElementById('qty').value = (maxU * pct / 100).toFixed(2) }
+  4134→      else { const maxT = price > 0 ? maxU / price : 0; document.getElementById('qty').value = (maxT * pct / 100).toFixed(6) }
+  4135→      updateQtyDisplay();
+  4136→    }
+  4137→
+  4138→    function onQtyInput() { document.querySelectorAll('.qpb').forEach(b => b.classList.remove('on')); updateQtyDisplay() }
+  4139→    function useMaxBuy() { const b = getAvailBuy(); if (qtyMode === 'usdt') document.getElementById('qty').value = b.toFixed(2); else { const p = getCurrentPrice(); document.getElementById('qty').value = p > 0 ? (b / p).toFixed(6) : '0' } updateQtyDisplay() }
+  4140→    function useMaxSell() { const b = getAvailSell(); if (qtyMode === 'usdt') document.getElementById('qty').value = b.toFixed(2); else { const p = getCurrentPrice(); document.getElementById('qty').value = p > 0 ? (b / p).toFixed(6) : '0' } updateQtyDisplay() }
+  4141→    function getOrderUSDT() { const val = parseFloat(document.getElementById('qty').value) || 0; const price = getCurrentPrice(); return qtyMode === 'usdt' ? val : (price > 0 ? val * price : 0) }
+  4142→    function getOrderToken() { const val = parseFloat(document.getElementById('qty').value) || 0; const price = getCurrentPrice(); return qtyMode === 'token' ? val : (price > 0 ? val / price : 0) }
+  4143→
+  4144→    // ════════════════════════════════════════════════════════
+  4145→    // PAGE SWITCHING
+  4146→    // ════════════════════════════════════════════════════════
+  4147→    function switchPage(p, tab) {
+  4148→      document.querySelectorAll('.page').forEach(pg => pg.classList.remove('on'));
+  4149→      document.querySelectorAll('.gtab').forEach(t => t.classList.remove('on', 'on-api', 'on-res'));
+  4150→      if (p === 'scanner') { document.getElementById('pgScanner').classList.add('on'); tab.classList.add('on') }
+  4151→      else if (p === 'results') { document.getElementById('pgResults').classList.add('on'); tab.classList.add('on-res') }
+  4152→      else if (p === 'api') { document.getElementById('pgApi').classList.add('on'); tab.classList.add('on-api') }
+  4153→    }
+  4154→    function switchRes(p, tab) {
+  4155→      document.querySelectorAll('.ressp').forEach(s => s.classList.remove('on'));
+  4156→      document.querySelectorAll('.restab').forEach(t => t.classList.remove('on'));
+  4157→      document.getElementById('res-' + p).classList.add('on'); tab.classList.add('on');
+  4158→      if (p === 'orders') renderOrders();
+  4159→      if (p === 'daily') renderDaily();
+  4160→    }
+  4161→
+  4162→    // ════════════════════════════════════════════════════════
+  4163→    // SCANNER
+  4164→    // ════════════════════════════════════════════════════════
+  4165→    function getModes() { return { SS: document.getElementById('tog-ss')?.checked, SF: document.getElementById('tog-sf')?.checked, FS: document.getElementById('tog-fs')?.checked, FF: document.getElementById('tog-ff')?.checked } }
+  4166→
+  4167→    function genRows() {
+  4168→      const modes = getModes();
+  4169→      allRows = [];
+  4170→      // Somente SPOT (SS) com dados reais
+  4171→      if (!modes.SS) {
+  4172→        const now = Date.now();
+  4173→        if (now - MODE_WARN_TS > 5000) {
+  4174→          notify('? Apenas SPOT/SS dispon?vel com dados reais', 'w');
+  4175→          MODE_WARN_TS = now;
+  4176→        }
+  4177→        return;
+  4178→      }
+  4179→      PAIRS.forEach(sym => {
+  4180→        const pairs = [];
+  4181→        for (let i = 0; i < EXCHS.length; i++) {
+  4182→          for (let j = 0; j < EXCHS.length; j++) {
+  4183→            if (i !== j) pairs.push([EXCHS[i], EXCHS[j]]);
+  4184→          }
+  4185→        }
+  4186→        pairs.forEach(([bEx, sEx]) => {
+  4187→          const qb = QUOTES[bEx]?.[sym];
+  4188→          const qs = QUOTES[sEx]?.[sym];
+  4189→          if (!qb || !qs || !qb.ask || !qs.bid) return;
+  4190→          const ask = qb.ask, bid = qs.bid;
+  4191→          if (ask <= 0 || bid <= 0) return;
+  4192→          const sp = +(((bid - ask) / ask) * 100).toFixed(3);
+  4193→          if (sp < 0.01) return;
+  4194→          const fees = (FEE[bEx] || 0) + (FEE[sEx] || 0);
+  4195→          const fr = 0;
+  4196→          const net = +(sp - fees * 100).toFixed(3);
+  4197→          const buyAt = +ask.toFixed(ask > 1000 ? 2 : 4);
+  4198→          const sellAt = +bid.toFixed(bid > 1000 ? 2 : 4);
+  4199→          let liq = null;
+  4200→          if (qb.askQty && qs.bidQty) {
+  4201→            liq = (qb.askQty * ask) + (qs.bidQty * bid);
+  4202→          }
+  4203→          allRows.push({ sym, type: 'SS', exchs: [bEx, sEx], spread: sp, fees, fr, net, buyAt, sellAt, liq, rank: 0 });
+  4204→        });
+  4205→      });
+  4206→      allRows.sort((a, b) => b.spread - a.spread); allRows.forEach((r, i) => r.rank = i + 1);
+  4207→    }
+  4208→
+  4209→    function apf(t, el) {
+  4210→      afTypeF = t; document.querySelectorAll('.ftag').forEach(b => b.classList.remove('on')); el.classList.add('on'); applyF();
+  4211→    }
+  4212→
+  4213→    function applyF() {
+  4214→      const type = document.getElementById('fType').value;
+  4215→      const minSp = parseFloat(document.getElementById('fSp').value) || 0;
+  4216→      const minL = parseFloat(document.getElementById('fLiq').value) || 0;
+  4217→      const ex = document.getElementById('fEx').value;
+  4218→      const srch = (document.getElementById('fSym').value || '').toUpperCase();
+  4219→      filteredRows = allRows.filter(r => {
+  4220→        if (afTypeF !== 'all' && r.type !== afTypeF) return false;
+  4221→        if (type !== 'all' && r.type !== type) return false;
+  4222→        if (r.spread < minSp) return false; if (r.liq != null && r.liq < minL) return false;
+  4223→        if (ex !== 'all' && !r.exchs.includes(ex)) return false;
+  4224→        if (srch && !r.sym.includes(srch)) return false; return true;
+  4225→      });
+  4226→      if (selIdx >= filteredRows.length) selIdx = 0;
+  4227→      renderScanner(); renderAsset();
+  4228→      (function () { var __t = document.getElementById('oppCnt'); if (__t) __t.textContent = filteredRows.length; })();
+  4229→      (function () { var __t = document.getElementById('scanBadge'); if (__t) __t.textContent = filteredRows.length; })();
+  4230→      (function () { var __t = document.getElementById('listCt'); if (__t) __t.textContent = filteredRows.length; })();
+  4231→      (function () { var __t = document.getElementById('hotCt'); if (__t) __t.textContent = filteredRows.filter(r => r.spread > 0.5).length + ' hot'; })();
+  4232→      const msv = document.getElementById('minSV'); if (msv) msv.textContent = (document.getElementById('fSp')?.value || '0.3') + '%';
+  4233→    }
+  4234→
+  4235→    function sel(i) {
+  4236→      selIdx = i; const r = filteredRows[i]; if (!r) return;
+  4237→      (function () { var __t = document.getElementById('phSym'); if (__t) __t.textContent = r.sym; })();
+  4238→      (function () { var __t = document.getElementById('phType'); if (__t) __t.textContent = r.type; })();
+  4239→      document.getElementById('phType') && (document.getElementById('phType').className = 'at t' + r.type.toLowerCase());
+  4240→      (function () { var __t = document.getElementById('phSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4241→      (function () { var __t = document.getElementById('phNet'); if (__t) __t.textContent = (r.net > 0 ? '+' : '') + r.net.toFixed(3) + '%'; })();
+  4242→      (function () { var __t = document.getElementById('phBE'); if (__t) __t.textContent = r.exchs[0]; })(); (function () { var __t = document.getElementById('phSE'); if (__t) __t.textContent = r.exchs[1]; })();
+  4243→      (function () { var __t = document.getElementById('obBE'); if (__t) __t.textContent = r.exchs[0]; })(); (function () { var __t = document.getElementById('obSE'); if (__t) __t.textContent = r.exchs[1]; })();
+  4244→      (function () { var __t = document.getElementById('qePair'); if (__t) __t.textContent = r.sym; })();
+  4245→      (document.getElementById('lBuy') || { value: '' }).value = r.buyAt; (document.getElementById('lSell') || { value: '' }).value = r.sellAt;
+  4246→      (document.getElementById('buyEx') || { value: '' }).value = r.exchs[0]; (document.getElementById('sellEx') || { value: '' }).value = r.exchs[1];
+  4247→      const modeEl = document.getElementById('arbMode'); if (modeEl) modeEl.value = r.type === 'FS' ? 'FS' : r.type;
+  4248→      updateBalPanel();
+  4249→      const f1 = FEE[r.exchs[0]] || .075, f2 = FEE[r.exchs[1]] || .020, fr = Math.abs(r.fr), sl = .05;
+  4250→      const net = r.spread - f1 - f2 - fr * 100 - sl;
+  4251→      (function () { var __t = document.getElementById('cSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4252→      (function () { var __t = document.getElementById('cF1'); if (__t) __t.textContent = '-' + f1.toFixed(3) + '%'; })();
+  4253→      (function () { var __t = document.getElementById('cF2'); if (__t) __t.textContent = '-' + f2.toFixed(3) + '%'; })();
+  4254→      (function () { var __t = document.getElementById('cFr'); if (__t) __t.textContent = '-' + fr.toFixed(4) + '%'; })();
+  4255→      (function () { var __t = document.getElementById('cSl'); if (__t) __t.textContent = '-' + sl.toFixed(3) + '%'; })();
+  4256→      const nEl = document.getElementById('cNet');
+  4257→      if (nEl) { nEl.textContent = (net > 0 ? '+' : '') + net.toFixed(3) + '%'; nEl.style.color = net > 0 ? 'var(--g)' : 'var(--r)'; }
+  4258→      const qty = getOrderUSDT() || parseFloat(document.getElementById('cfg-orderSize')?.value || 200);
+  4259→      const uEl = document.getElementById('cUsd');
+  4260→      if (uEl) { uEl.textContent = (net > 0 ? '+$' : '-$') + Math.abs(net / 100 * qty).toFixed(2); uEl.style.color = net > 0 ? 'var(--g)' : 'var(--r)'; }
+  4261→      renderOB(r.buyAt, r.liq);
+  4262→    }
+  4263→
+  4264→    function renderAsset() {
+  4265→      const srch = (document.getElementById('apSrch').value || '').toUpperCase();
+  4266→      const rows = filteredRows.filter(r => !srch || r.sym.includes(srch));
+  4267→      const seen = new Set();
+  4268→      const unique = rows.filter(r => { const k = r.sym + '|' + r.type + '|' + r.exchs.join('-'); if (seen.has(k)) return false; seen.add(k); return true });
+  4269→      document.getElementById('alist').innerHTML = unique.map(r => `<div class="ai${filteredRows.indexOf(r) === selIdx ? ' sel' : ''}" onclick="sel(${filteredRows.indexOf(r)})"><span class="ai-sym">${r.sym.split('/')[0]}<br><span style="font-size:7px;color:var(--dim)">${r.exchs[0]}→${r.exchs[1]}</span></span><span class="ai-sp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(2)}%</span><span class="at t${r.type.toLowerCase()}">${r.type}</span></div>`).join('');
+  4270→    }
+  4271→
+  4272→    function renderScanner() {
+  4273→      document.getElementById('scBody').innerHTML = filteredRows.map((r, i) => `<div class="sr${i === selIdx ? ' sel' : ''}" onclick="sel(${i})"><span style="color:var(--dim);font-size:8px">${r.rank}</span><span style="font-weight:700;font-size:10px">${r.sym}</span><span class="at t${r.type.toLowerCase()}">${r.type}</span><span style="color:var(--mid);font-size:9px">${r.exchs[0]}→${r.exchs[1]}</span><span class="srsp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(3)}%</span><span class="srpr">$${fmtP(r.buyAt, r.buyAt > 100 ? 2 : 4)}</span><span class="srpr">$${fmtP(r.sellAt, r.sellAt > 100 ? 2 : 4)}</span><span class="${r.fr > 0 ? 'srfp' : 'srfn'}">${(r.fr * 100).toFixed(3)}%</span><span><div class="lw"><div class="lb" style="width:${Math.min(80, r.liq / 5000)}px"></div><span class="lv">$${fmt(r.liq)}</span></div></span><span style="font-weight:700;font-size:10px;color:${r.net > 0 ? 'var(--g)' : 'var(--r)'}">${(r.net > 0 ? '+' : '') + r.net.toFixed(3)}%</span><span class="sra"><button class="bar" onclick="event.stopPropagation();qArb(${i})">⚡ARB</button><button class="bwr" onclick="event.stopPropagation();watchRow(${i})">👁</button></span></div>`).join('');
+  4274→    }
+  4275→
+  4276→    function renderOB(mid, liq) {
+  4277→      const asks = [], bids = [];
+  4278→      const prec = mid > 1000 ? 1 : 4;
+  4279→      for (let i = 5; i > 0; i--) { asks.push(mid * (1 + i * .0003)); }
+  4280→      for (let i = 1; i <= 5; i++) { bids.push(mid * (1 - i * .0003)); }
+  4281→      document.getElementById('obAsks').innerHTML = asks.map(p => `<div class="oblv"><span class="obpa">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+  4282→      document.getElementById('obBids').innerHTML = bids.map(p => `<div class="oblv"><span class="obpb">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+  4283→      (function () { var __t = document.getElementById('obSpD'); if (__t) __t.textContent = '$' + (mid * .0006).toFixed(mid > 1000 ? 2 : 6); })();
+  4284→      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(liq); })();
+  4285→      (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '—'; })();
+  4286→    }
+  4287→
+  4288→    function renderPos() {
+  4289→      const tbody = document.getElementById('ptBody');
+  4290→      (function () { var __t = document.getElementById('psCt'); if (__t) __t.textContent = positions.length + ' ativas'; })();
+  4291→      (function () { var __t = document.getElementById('posCount'); if (__t) __t.textContent = positions.length; })();
+  4292→      if (!tbody) return;
+  4293→      if (!positions.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:8px;font-size:9px">Nenhuma posição aberta</td></tr>'; return }
+  4294→      tbody.innerHTML = positions.map((p, i) => {
+  4295→        const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4296→        const pp = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
+  4297→        return `<tr><td style="font-weight:700">${p.sym}</td><td><span class="at t${p.type.toLowerCase()}">${p.type}</span></td><td class="${p.side === 'LONG' ? 'sl' : 'ss'}">${p.side}</td><td>$${fmtP(p.entry, p.entry > 100 ? 2 : 4)}</td><td>$${fmtP(p.cur, p.cur > 100 ? 2 : 4)}</td><td>$${fmt(p.usdt)}</td><td>${p.token ? p.token.toFixed(6) + ' ' + p.sym.split('/')[0] : '—'}</td><td class="${pnl >= 0 ? 'pp' : 'pn'}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</td><td class="${pp >= 0 ? 'pp' : 'pn'}">${pp >= 0 ? '+' : ''}${pp.toFixed(2)}%</td><td>${p.bEx}</td><td>${p.sEx}</td><td><button class="bcr" onclick="closeP(${i})">✕ MKT</button><button class="bcrd" onclick="cancelP(${i})">✕ ORD</button></td></tr>`;
+  4298→      }).join('');
+  4299→    }
+  4300→
+  4301→    // ════════════════════════════════════════════════════════
+  4302→    // RESULTS
+  4303→    // ════════════════════════════════════════════════════════
+  4304→    function renderOrders() {
+  4305→      const status = document.getElementById('ordStatus').value;
+  4306→      const type = document.getElementById('ordType2').value;
+  4307→      const exch = document.getElementById('ordExch').value;
+  4308→      const sym = (document.getElementById('ordSym').value || '').toUpperCase();
+  4309→      let rows = tradeHistory.filter(t => {
+  4310→        if (status !== 'all' && t.status !== status) return false;
+  4311→        if (type !== 'all' && t.type !== type) return false;
+  4312→        if (exch !== 'all' && t.bEx !== exch && t.sEx !== exch) return false;
+  4313→        if (sym && !t.sym.includes(sym)) return false; return true;
+  4314→      }).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  4315→      (function () { var __t = document.getElementById('ordTotal'); if (__t) __t.textContent = rows.length; })();
+  4316→      (function () { var __t = document.getElementById('ordBadge'); if (__t) __t.textContent = tradeHistory.length; })();
+  4317→      document.getElementById('ordBody').innerHTML = rows.map(t => {
+  4318→        const pC = t.pnlPct >= 0 ? 'owin' : 'oloss', uC = t.pnlUsd >= 0 ? 'owin' : 'oloss';
+  4319→        const st = t.status === 'closed' ? '<span class="ostac">FECHADO</span>' : t.status === 'open' ? '<span class="ostao">ABERTO</span>' : '<span class="ostax">CANCELADO</span>';
+  4320→        return `<tr><td style="color:var(--dim)">#${t.id}</td><td style="color:var(--mid)">${fmtDate(t.ts)}</td><td style="font-weight:700">${t.sym}</td><td><span class="at t${t.type.toLowerCase()}">${t.type}</span></td><td>${t.bEx}</td><td>${t.sEx}</td><td class="osbuy">$${fmtP(t.buyP, t.buyP > 100 ? 2 : 4)}</td><td class="ossell">$${fmtP(t.sellP, t.sellP > 100 ? 2 : 4)}</td><td>$${fmt(t.usdt)}</td><td>${t.token ? t.token.toFixed(6) : '-'}</td><td style="color:var(--y)">${t.spread.toFixed(3)}%</td><td style="color:var(--r)">-${t.fees.toFixed(3)}%</td><td class="${pC}">${t.status === 'cancelled' ? '—' : (t.pnlPct >= 0 ? '+' : '') + t.pnlPct.toFixed(3) + '%'}</td><td class="${uC}">${t.status === 'cancelled' ? '—' : (t.pnlUsd >= 0 ? '+$' : '-$') + Math.abs(t.pnlUsd).toFixed(2)}</td><td>${st}</td></tr>`;
+  4321→      }).join('');
+  4322→    }
+  4323→
+  4324→    function renderDaily() {
+  4325→      const byDay = {};
+  4326→      tradeHistory.forEach(t => {
+  4327→        const d = new Date(t.ts).toLocaleDateString('pt-BR');
+  4328→        if (!byDay[d]) byDay[d] = { date: d, trades: 0, wins: 0, losses: 0, pnlUsd: 0, pnlPct: 0, fees: 0, vol: 0 };
+  4329→        const day = byDay[d]; day.trades++;
+  4330→        if (t.status === 'closed') { if (t.pnlUsd >= 0) day.wins++; else day.losses++; day.pnlUsd += t.pnlUsd; day.pnlPct += t.pnlPct; day.fees += t.fees / 100 * (t.usdt || 0) }
+  4331→        day.vol += (t.usdt || 0);
+  4332→      });
+  4333→      const days = Object.values(byDay).reverse();
+  4334→      if (!days.length) { document.getElementById('dailyGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--dim);padding:24px">Nenhum trade ainda.</div>'; return }
+  4335→      document.getElementById('dailyGrid').innerHTML = days.map(d => {
+  4336→        const isG = d.pnlUsd >= 0, wr = d.trades ? ((d.wins / d.trades) * 100).toFixed(0) : 0, ww = d.trades ? Math.round(d.wins / d.trades * 100) : 0;
+  4337→        return `<div class="daycard"><div class="daychd"><span class="daydate">${d.date}</span><span class="${isG ? 'daypg' : 'daypg daypr'}">${isG ? '+' : ''}$${d.pnlUsd.toFixed(2)}</span></div><div class="daycb"><div class="dayrow"><span class="dayk">PnL %</span><span class="dayv ${isG ? 'pp' : 'pn'}">${isG ? '+' : ''}${d.pnlPct.toFixed(3)}%</span></div><div class="dayrow"><span class="dayk">Trades</span><span class="dayv">${d.trades}</span></div><div class="dayrow"><span class="dayk">Win Rate</span><span class="dayv" style="color:var(--c)">${wr}%</span></div><div class="dayrow"><span class="dayk">W/L</span><span class="dayv">${d.wins}✓/${d.losses}✗</span></div><div class="dayrow"><span class="dayk">Volume</span><span class="dayv">$${fmt(d.vol)}</span></div><div class="dayrow"><span class="dayk">Taxas</span><span class="dayv" style="color:var(--r)">-$${d.fees.toFixed(2)}</span></div><div class="daybw"><div class="daybg" style="width:${ww}%"></div><div class="daybr" style="width:${100 - ww}%"></div></div></div></div>`;
+  4338→      }).join('');
+  4339→    }
+  4340→
+  4341→    function renderOverview() {
+  4342→      const closed = tradeHistory.filter(t => t.status === 'closed');
+  4343→      const wins = closed.filter(t => t.pnlUsd >= 0);
+  4344→      const totalPnl = closed.reduce((s, t) => s + t.pnlUsd, 0);
+  4345→      const totalVol = tradeHistory.reduce((s, t) => s + (t.usdt || 0), 0);
+  4346→      const totalFees = closed.reduce((s, t) => s + t.fees / 100 * (t.usdt || 0), 0);
+  4347→      const wr = closed.length ? ((wins.length / closed.length) * 100).toFixed(1) : 0;
+  4348→      document.getElementById('resBanner') && (document.getElementById('resBanner').innerHTML = `<div class="rbcard"><div class="rblabel">PnL Total</div><div class="rbval ${totalPnl >= 0 ? 'rbg' : 'rbr'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div><div class="rbsub">${closed.length} fechados</div></div><div class="rbcard"><div class="rblabel">Win Rate</div><div class="rbval rbc">${wr}%</div><div class="rbsub">${wins.length}W / ${closed.length - wins.length}L</div></div><div class="rbcard"><div class="rblabel">Volume</div><div class="rbval rby">$${fmt(totalVol)}</div><div class="rbsub">${tradeHistory.length} ordens</div></div><div class="rbcard"><div class="rblabel">Taxas Pagas</div><div class="rbval rbr">-$${totalFees.toFixed(2)}</div><div class="rbsub">estimado</div></div><div class="rbcard"><div class="rblabel">Posições</div><div class="rbval rbp">${positions.length}</div><div class="rbsub">abertas</div></div>`);
+  4349→      (function () { var __t = document.getElementById('totalPnl'); if (__t) __t.textContent = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2); })();
+  4350→      (function () { var __t = document.getElementById('winRate'); if (__t) __t.textContent = closed.length ? wr + '%' : '—'; })();
+  4351→    }
+  4352→
+  4353→    function exportOrders() {
+  4354→      if (!tradeHistory.length) { notify('Nenhum trade para exportar', 'w'); return }
+  4355→      const hdr = 'ID,Data,Par,Tipo,BuyExch,SellExch,BuyP,SellP,USDT,Token,Spread%,Taxas%,PnL%,PnL$,Status\n';
+  4356→      const rows = tradeHistory.map(t => [t.id, fmtDate(t.ts), t.sym, t.type, t.bEx, t.sEx, t.buyP, t.sellP, t.usdt || 0, t.token || 0, t.spread, t.fees, t.pnlPct || 0, t.pnlUsd || 0, t.status].join(',')).join('\n');
+  4357→      const blob = new Blob([hdr + rows], { type: 'text/csv' });
+  4358→      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'arb-trades-' + Date.now() + '.csv'; a.click();
+  4359→      notify('⬇ CSV exportado', 'c');
+  4360→    }
+  4361→
+  4362→    // ════════════════════════════════════════════════════════
+  4363→    // ARB EXECUTION
+  4364→    // ════════════════════════════════════════════════════════
+  4365→    function doArb() {
+  4366→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4367→      const usdt = getOrderUSDT(); if (usdt <= 0) { notify('⚠ Defina a quantidade', 'w'); return }
+  4368→      const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
+  4369→      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
+  4370→      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+  4371→      const mode = document.getElementById('arbMode').value;
+  4372→      const token = getOrderToken();
+  4373→      if (document.getElementById('tog-confirm')?.checked) {
+  4374→        (function () { var __t = document.getElementById('mPair'); if (__t) __t.textContent = r.sym; })();
+  4375→        (function () { var __t = document.getElementById('mMode'); if (__t) __t.textContent = mode + ' (' + bex + '→' + sex + ')'; })();
+  4376→        (function () { var __t = document.getElementById('mBuy'); if (__t) __t.textContent = bex + ' @ $' + fmtP(buyP, buyP > 100 ? 2 : 4); })();
+  4377→        (function () { var __t = document.getElementById('mSell'); if (__t) __t.textContent = sex + ' @ $' + fmtP(sellP, sellP > 100 ? 2 : 4); })();
+  4378→        (function () { var __t = document.getElementById('mQtyU'); if (__t) __t.textContent = '$' + fmt(usdt); })();
+  4379→        (function () { var __t = document.getElementById('mQty'); if (__t) __t.textContent = token.toFixed(6) + ' ' + r.sym.split('/')[0]; })();
+  4380→        (function () { var __t = document.getElementById('mSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4381→        (function () { var __t = document.getElementById('mNet'); if (__t) __t.textContent = (r.net > 0 ? '+' : '') + '$' + (r.net / 100 * usdt).toFixed(2); })();
+  4382→        document.getElementById('modal').classList.add('open');
+  4383→      } else { confirmArb() }
+  4384→    }
+  4385→
+  4386→    async function confirmArb() {
+  4387→      closeM();
+  4388→      const r = filteredRows[selIdx]; if (!r) return;
+  4389→      const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
+  4390→      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
+  4391→      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+  4392→      const usdt = getOrderUSDT(), token = getOrderToken();
+  4393→      const mode = document.getElementById('arbMode').value;
+  4394→      const isSpotBuy = mode === 'SS' || mode === 'SF';
+  4395→      const isSpotSell = mode === 'SS' || mode === 'FS';
+  4396→      const hasBuyKey = !!lsGet('keys_' + bex.toLowerCase());
+  4397→      const hasSellKey = !!lsGet('keys_' + sex.toLowerCase());
+  4398→      if (!hasBuyKey || !hasSellKey) {
+  4399→        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), ' w');
+  4400→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled'); return;
+  4401→      }
+  4402→      notify('⚡ Enviando ARB ' + r.sym + '...', '');
+  4403→      try {
+  4404→        const [buyRes, sellRes] = await Promise.all([
+  4405→          placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy),
+  4406→          placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell)
+  4407→        ]);
+  4408→        notify('✓ ARB executado! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
+  4409→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
+  4410→      } catch (err) {
+  4411→        notify('✗ Falha: ' + errMsg(err), 'e');
+  4412→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+  4413→      }
+  4414→    }
+  4415→
+  4416→    function registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, status, bOid, sOid) {
+  4417→      const trade = { id: tradeId++, ts: new Date().toISOString(), sym: r.sym, type: mode, bEx: bex, sEx: sex, buyP, sellP, usdt, token, spread: r.spread, fees: (FEE[bex] + FEE[sex]), pnlPct: 0, pnlUsd: 0, status, bOid: bOid || null, sOid: sOid || null };
+  4418→      tradeHistory.unshift(trade);
+  4419→      if (status === 'open') { positions.push({ sym: r.sym, side: 'LONG', type: mode, entry: buyP, cur: buyP, usdt, token, bEx: bex, sEx: sex, bOid: bOid || null, sOid: sOid || null }) }
+  4420→      lsSet('trades', tradeHistory.slice(-500)); lsSet('positions', positions);
+  4421→      renderPos(); renderOverview();
+  4422→      (function () { var __t = document.getElementById('ordBadge'); if (__t) __t.textContent = tradeHistory.length; })();
+  4423→    }
+  4424→
+  4425→    function placeLeg(side) {
+  4426→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4427→      const exch = side === 'buy' ? getBuyExch() : getSellExch();
+  4428→      const price = parseFloat(document.getElementById(side === 'buy' ? 'lBuy' : 'lSell').value) || r[side === 'buy' ? 'buyAt' : 'sellAt'];
+  4429→      const token = getOrderToken();
+  4430→      const mode = document.getElementById('arbMode').value;
+  4431→      const isSpot = (side === 'buy' && (mode === 'SS' || mode === 'SF')) || (side === 'sell' && (mode === 'SS' || mode === 'FS'));
+  4432→      if (!lsGet('keys_' + exch.toLowerCase())) { notify('⚠ Configure a key do ' + exch, 'w'); return }
+  4433→      notify((side === 'buy' ? '▲' : '▼') + ' LIMIT ' + side.toUpperCase() + ' ' + r.sym + ' @ $' + price + ' em ' + exch + '...', '');
+  4434→      placeRealOrder(exch, r.sym, side, token, price, isSpot)
+  4435→        .then(res => notify('✓ ' + side.toUpperCase() + ' #' + res.orderId + ' enviado', 'g'))
+  4436→        .catch(err => notify('✗ ' + side.toUpperCase() + ' falhou: ' + errMsg(err), 'e'));
+  4437→    }
+  4438→
+  4439→    function closeM() { document.getElementById('modal').classList.remove('open') }
+  4440→    function qArb(i) { sel(i); doArb() }
+  4441→    function watchRow(i) { notify('👁 ' + filteredRows[i]?.sym + ' monitorado', '') }
+  4442→
+  4443→    // ════════════════════════════════════════════════════════
+  4444→    // POSITIONS
+  4445→    // ════════════════════════════════════════════════════════
+  4446→    function closeP(i) {
+  4447→      const p = positions[i]; if (!p) return;
+  4448→      const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4449→      const pnlPct = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
+  4450→      const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
+  4451→      if (t) { t.status = 'closed'; t.pnlUsd = pnl; t.pnlPct = pnlPct; lsSet('trades', tradeHistory.slice(-500)) }
+  4452→      positions.splice(i, 1); lsSet('positions', positions);
+  4453→      notify('✕ ' + p.sym + ' fechado | PnL: ' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2), 'w');
+  4454→      renderPos(); renderOverview();
+  4455→    }
+  4456→    function cancelP(i) {
+  4457→      const p = positions[i]; if (!p) return;
+  4458→      const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
+  4459→      if (t) { t.status = 'cancelled'; lsSet('trades', tradeHistory.slice(-500)) }
+  4460→      positions.splice(i, 1); lsSet('positions', positions);
+  4461→      notify('✕ Ordens ' + p.sym + ' canceladas', 'w'); renderPos(); renderOverview();
+  4462→    }
+  4463→    function cancelAll() { const len = positions.length; for (let i = 0; i < len; i++)cancelP(0); notify('✕ Todas as ordens canceladas', 'w') }
+  4464→
+  4465→    function setPct(v, el) { pctVal = v; document.querySelectorAll('.qpct').forEach(b => b.classList.remove('on')); if (el) el.classList.add('on') }
+  4466→    function qClose(side) {
+  4467→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4468→      const usdt = getOrderUSDT() || 100, cq = (usdt * pctVal / 100).toFixed(2);
+  4469→      if (side === 'buy' || side === 'both') notify('✕ FECHAR BUY ' + r.sym + ' ' + pctVal + '% ($' + cq + ') MARKET @ ' + getBuyExch(), 'w');
+  4470→      if (side === 'sell' || side === 'both') notify('✕ FECHAR SELL ' + r.sym + ' ' + pctVal + '% ($' + cq + ') MARKET @ ' + getSellExch(), 'w');
+  4471→    }
+  4472→
+  4473→    function openExit() {
+  4474→      if (!positions.length) { notify('Nenhuma posição aberta', 'w'); return }
+  4475→      const bd = document.getElementById('exBd');
+  4476→      bd.innerHTML = positions.map((p, i) => {
+  4477→        const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4478→        return `<div class="exitem"><div class="exinfo"><span class="exsym">${p.sym}</span><span class="exdet">${p.type} | ${p.bEx}→${p.sEx} | $${fmt(p.usdt)}</span></div><span class="${pnl >= 0 ? 'pp' : 'pn'}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span><div class="exacts"><button class="exprt" onclick="closeP(${i});reRenderExit()">MKT</button><button class="excl" onclick="cancelP(${i});reRenderExit()">CANCEL</button></div></div>`;
+  4479→      }).join('') + `<div class="exfull"><button class="efall" onclick="closeAll()">🔴 FECHAR TUDO</button><button class="efcn" onclick="closeExit()">Cancelar</button></div>`;
+  4480→      document.getElementById('exitModal').classList.add('open');
+  4481→    }
+  4482→    function reRenderExit() { if (positions.length) openExit(); else closeExit() }
+  4483→    function closeAll() { closeExit(); const len = positions.length; for (let i = 0; i < len; i++)closeP(0); notify('🔴 TUDO FECHADO', 'e') }
+  4484→    function closeExit() { document.getElementById('exitModal').classList.remove('open') }
+  4485→
+  4486→    // ════════════════════════════════════════════════════════
+  4487→    // BOT + LIVE TICK
+  4488→    // ════════════════════════════════════════════════════════
+  4489→    function startBot() { botRunning = true; notify('▶ Bot ATIVO', 'g'); if (!liveInterval) liveInterval = setInterval(live, 1600) }
+  4490→    function stopBot() { botRunning = false; notify('⏹ Bot PAUSADO', 'w'); if (liveInterval) { clearInterval(liveInterval); liveInterval = null } }
+  4491→    function onExchChange() { updateBalPanel() }
+  4492→    function sortSp() { filteredRows.sort((a, b) => b.spread - a.spread); renderScanner(); renderAsset() }
+  4493→    function refresh() { genRows(); applyF(); notify('↺ Scanner atualizado', '') }
+  4494→
+  4495→    async function live() {
+  4496→      const _t0 = Date.now();
+  4497→      await refreshQuotes();
+  4498→      genRows();
+  4499→      applyF();
+  4500→      (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (Date.now() - _t0) + 'ms'; })();
+  4501→      if (filteredRows[selIdx]) renderOB(filteredRows[selIdx].buyAt, filteredRows[selIdx].liq || 0);
+  4502→      if (positions.length) renderPos();
+  4503→      updateBalPanel(); renderOverview();
+  4504→      if (botRunning && document.getElementById('tog-auto')?.checked) {
+  4505→        const minSp = parseFloat(document.getElementById('cfg-minSpread')?.value || .3);
+  4506→        const best = filteredRows.find(r => r.spread >= minSp && r.net > 0);
+  4507→        if (best) { selIdx = filteredRows.indexOf(best); sel(selIdx); doArb() }
+  4508→      }
+  4509→    }
+  4510→
+  4511→    // ════════════════════════════════════════════════════════
+  4512→
+  4513→    function mapSymbol(ex, sym) {
+  4514→      const s = sym.replace('/', '');
+  4515→      if (ex === 'KuCoin' || ex === 'OKX') return sym.replace('/', '-');
+  4516→      if (ex === 'Gate') return sym.replace('/', '_');
+  4517→      if (ex === 'BingX') return sym.replace('/', '-');
+  4518→      if (ex === 'LBank') return sym.replace('/', '_').toLowerCase();
+  4519→      if (ex === 'Bitget') return sym.replace('/', '');
+  4520→      return s;
+  4521→    }
+  4522→    async function fetchQuote(ex, sym) {
+  4523→      const exl = ex.toLowerCase();
+  4524→      const s = mapSymbol(ex, sym);
+  4525→      try {
+  4526→        if (ex === 'Binance') {
+  4527→          const r = await apiFetch('https://api.binance.com/api/v3/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
+  4528→          if (!r) return null; const d = await r.json();
+  4529→          return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
+  4530→        }
+  4531→        if (ex === 'MEXC') {
+  4532→          const r = await apiFetch('https://api.mexc.com/api/v3/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
+  4533→          if (!r) return null; const d = await r.json();
+  4534→          return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
+  4535→        }
+  4536→        if (ex === 'KuCoin') {
+  4537→          // KuCoin bloqueia IPs de cloud (Oracle) — busca direto do browser (suporta CORS público)
+  4538→          const r = await fetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { signal: AbortSignal.timeout(8000) });
+  4539→          if (!r.ok) return null; const d = await r.json();
+  4540→          if (d.code !== '200000') return null;
+  4541→          const data = d.data || {};
+  4542→          return { bid: parseFloat(data.buy || 0), ask: parseFloat(data.sell || 0), bidQty: 0, askQty: 0 };
+  4543→        }
+  4544→        if (ex === 'Gate') {
+  4545→          const r = await apiFetch('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=' + s, { method: 'GET' }, true);
+  4546→          if (!r) return null; const d = await r.json();
+  4547→          const it = Array.isArray(d) ? d[0] : null;
+  4548→          return { bid: parseFloat(it?.highest_bid || 0), ask: parseFloat(it?.lowest_ask || 0), bidQty: parseFloat(it?.highest_bid_size || 0), askQty: parseFloat(it?.lowest_ask_size || 0) };
+  4549→        }
+  4550→        if (ex === 'Bybit') {
+  4551→          const r = await apiFetch('https://api.bybit.com/v5/market/orderbook?category=spot&symbol=' + s + '&limit=1', { method: 'GET' }, true);
+  4552→          if (!r) return null; const d = await r.json();
+  4553→          const b = d?.result?.b?.[0]; const a = d?.result?.a?.[0];
+  4554→          return { bid: parseFloat(b?.[0] || 0), ask: parseFloat(a?.[0] || 0), bidQty: parseFloat(b?.[1] || 0), askQty: parseFloat(a?.[1] || 0) };
+  4555→        }
+  4556→        if (ex === 'OKX') {
+  4557→          const r = await apiFetch('https://www.okx.com/api/v5/market/books?instId=' + s + '&sz=1', { method: 'GET' }, true);
+  4558→          if (!r) return null; const d = await r.json();
+  4559→          const b = d?.data?.[0]?.bids?.[0]; const a = d?.data?.[0]?.asks?.[0];
+  4560→          return { bid: parseFloat(b?.[0] || 0), ask: parseFloat(a?.[0] || 0), bidQty: parseFloat(b?.[1] || 0), askQty: parseFloat(a?.[1] || 0) };
+  4561→        }
+  4562→        if (ex === 'BingX') {
+  4563→          const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/bookTicker?symbol=' + s, { method: 'GET' }, true);
+  4564→          if (!r) return null;
+  4565→          if (!r.ok) {
+  4566→            if (r.status === 403) console.warn('[QUOTE] BingX 403 (blocked by origin/IP)');
+  4567→            return null;
+  4568→          }
+  4569→          const d = await r.json();
+  4570→          const data = Array.isArray(d?.data) ? (d.data[0] || {}) : (d?.data || {});
+  4571→          return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidVolume || data.bidQty || 0), askQty: parseFloat(data.askVolume || data.askQty || 0) };
+  4572→        }
+  4573→        if (ex === 'LBank') {
+  4574→          const r = await apiFetch('https://api.lbkex.com/v2/depth.do?symbol=' + s + '&size=1', { method: 'GET' }, true);
+  4575→          if (!r) return null; const d = await r.json();
+  4576→          if (d.result !== 'true' && d.result !== true) return null;
+  4577→          const bids = d.data?.bids; const asks = d.data?.asks;
+  4578→          if (!bids?.length || !asks?.length) return null;
+  4579→          return { bid: parseFloat(bids[0][0] || 0), ask: parseFloat(asks[0][0] || 0), bidQty: parseFloat(bids[0][1] || 0), askQty: parseFloat(asks[0][1] || 0) };
+  4580→        }
+  4581→        if (ex === 'Bitget') {
+  4582→          const r = await apiFetch('https://api.bitget.com/api/v2/spot/market/tickers?symbol=' + s, { method: 'GET' }, true);
+  4583→          if (!r) return null; const d = await r.json();
+  4584→          if (d.code !== '00000') return null;
+  4585→          const it = Array.isArray(d.data) ? d.data[0] : null;
+  4586→          if (!it) return null;
+  4587→          return { bid: parseFloat(it.bidPr || 0), ask: parseFloat(it.askPr || 0), bidQty: parseFloat(it.bidSz || 0), askQty: parseFloat(it.askSz || 0) };
+  4588→        }
+  4589→      } catch (e) {
+  4590→        console.warn('[QUOTE] ' + ex + ' ' + sym + ': ' + errMsg(e));
+  4591→      }
+  4592→      return null;
+  4593→    }
+  4594→    async function refreshQuotes() {
+  4595→      return withLock('refreshQuotes', async () => {
+  4596→        const now = Date.now();
+  4597→        if (now - LAST_FETCH < 1200) return;
+  4598→        LAST_FETCH = now;
+  4599→        // Busca todas as exchanges em paralelo (cada exchange busca seus pares sequencialmente)
+  4600→        await Promise.all(EXCHS.map(async ex => {
+  4601→          if (!QUOTES[ex]) QUOTES[ex] = {};
+  4602→          let ok = 0;
+  4603→          for (const sym of PAIRS) {
+  4604→            const q = await fetchQuote(ex, sym);
+  4605→            if (q && q.ask > 0 && q.bid > 0) {
+  4606→              QUOTES[ex][sym] = { ...q, ts: now };
+  4607→              ok++;
+  4608→            }
+  4609→          }
+  4610→          updateLed(ex.toLowerCase(), ok > 0 ? 'on' : 'err');
+  4611→        }));
+  4612→      });
+  4613→    }
+  4614→
+  4615→    // INIT
+  4616→    // ════════════════════════════════════════════════════════
+  4617→    (function init() {
+  4618→      // Corrige offset do relógio antes de tudo
+  4619→      initTsOffset().then(() => {
+  4620→        console.log('[INIT] Timestamp offset pronto: ' + GLOBAL_TS_OFFSET + 'ms');
+  4621→      }).catch(e => {
+  4622→        console.warn('[INIT] Timestamp offset falhou:', errMsg(e));
+  4623→      });
+  4624→      try {
+  4625→        const pb = getProxyBase();
+  4626→        if (!pb && location && location.port !== '8080' && location.protocol !== 'file:') {
+  4627→          notify('⚠ Proxy não configurado. Use ?proxy=URL_DO_BACKEND', 'w');
+  4628→        }
+  4629→      } catch (e) { }
+  4630→      const _pi = document.getElementById('proxy-input'); if (_pi) _pi.value = getProxyBase();
+  4631→      pingProxy();
+  4632→      loadSavedConfig(); loadSavedKeys(); loadSavedTrades();
+  4633→      document.querySelectorAll('input[type=number]').forEach(el => {
+  4634→        el.addEventListener('change', () => normalizeNumberInput(el.id, 0, null, 8));
+  4635→      });
+  4636→      document.getElementById('ordType')?.addEventListener('change', toggleLimitInputs);
+  4637→      genRows(); applyF();
+  4638→      if (filteredRows.length) sel(0);
+  4639→      toggleLimitInputs();
+  4640→      renderPos(); renderOverview(); updateBalPanel();
+  4641→      EXCHS.forEach(ex => { if (lsGet('keys_' + ex.toLowerCase())) fetchBalances(ex.toLowerCase()).catch(e => console.warn('[BAL] ' + ex + ': ' + errMsg(e))) });
+  4642→      liveInterval = setInterval(live, 1600);
+  4643→      notify('▶ ARB-HFT iniciado — Cole suas API Keys para ativar saldos reais', '');
+  4644→    })();
+  4645→
+  4646→
+  4647→  </script>
+  4648→</body>
+  4649→
+  4650→</html>
+  4651→
+  4652→
+  4653→
+  4654→
+  4655→
+  4656→
+  4657→
+  4658→
+  4659→
+  4660→
+  4661→
+  4662→
+  4663→
+  4664→
+  4665→
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

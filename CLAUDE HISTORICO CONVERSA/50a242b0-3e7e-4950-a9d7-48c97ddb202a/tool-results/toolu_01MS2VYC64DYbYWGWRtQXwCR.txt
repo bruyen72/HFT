@@ -1,0 +1,1004 @@
+  3500→      });
+  3501→      ['ss', 'sf', 'fs', 'ff', 'auto', 'confirm'].forEach(k => {
+  3502→        const v = lsGet('tog_' + k);
+  3503→        // tog-ss é o modo principal — nunca desativa por localStorage
+  3504→        if (v != null && k !== 'ss') { const el = document.getElementById('tog-' + k); if (el) el.checked = v }
+  3505→      });
+  3506→    }
+  3507→
+  3508→    function loadSavedTrades() {
+  3509→      tradeHistory = lsGet('trades') || [];
+  3510→      positions = lsGet('positions') || [];
+  3511→      tradeId = tradeHistory.length ? Math.max(...tradeHistory.map(t => t.id || 0)) + 1 : 1;
+  3512→    }
+  3513→
+  3514→    document.addEventListener('change', e => {
+  3515→      if (e.target.id && e.target.id.startsWith('cfg-')) lsSet('cfg_' + e.target.id.replace('cfg-', ''), e.target.value);
+  3516→      if (e.target.id && e.target.id.startsWith('tog-')) lsSet('tog_' + e.target.id.replace('tog-', ''), e.target.checked);
+  3517→    });
+  3518→
+  3519→    // ════════════════════════════════════════════════════════
+  3520→    // CRYPTO — Web Crypto API
+  3521→    // ════════════════════════════════════════════════════════
+  3522→    async function hmacHex(msg, secret, algo = 'SHA-256') {
+  3523→      const enc = new TextEncoder();
+  3524→      const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: algo }, false, ['sign']);
+  3525→      const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  3526→      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  3527→    }
+  3528→    async function hmacB64(msg, secret) {
+  3529→      const enc = new TextEncoder();
+  3530→      const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  3531→      const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  3532→      return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  3533→    }
+  3534→    async function sha512hex(msg) {
+  3535→      const enc = new TextEncoder();
+  3536→      const buf = await crypto.subtle.digest('SHA-512', enc.encode(msg || ''));
+  3537→      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  3538→    }
+  3539→
+  3540→    // ════════════════════════════════════════════════════════
+  3541→    // FETCH with CORS proxy fallback
+  3542→    // ════════════════════════════════════════════════════════
+  3543→    const DEFAULT_PROXY_BASE = '';
+  3544→    function getProxyBase() {
+  3545→      try {
+  3546→        const qp = new URLSearchParams(location.search).get('proxy');
+  3547→        if (qp) {
+  3548→          const clean = qp.replace(/\/+$/, '');
+  3549→          localStorage.setItem('proxy_base', clean);
+  3550→          return clean;
+  3551→        }
+  3552→      } catch (e) { }
+  3553→      const stored = localStorage.getItem('proxy_base');
+  3554→      if (stored) return stored.replace(/\/+$/, '');
+  3555→      return DEFAULT_PROXY_BASE;
+  3556→    }
+  3557→    async function apiFetch(url, opts = {}, noThrow = false) {
+  3558→      // Passa URL COMPLETA como _target — proxy repassa sem modificar
+  3559→      function buildProxyUrl(originalUrl) {
+  3560→        const proxyBase = getProxyBase();
+  3561→        if (proxyBase) return proxyBase + '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3562→        if (location && location.port === '8080') return '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3563→        if (location && location.protocol === 'file:') return DEFAULT_PROXY_BASE + '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3564→        return '';
+  3565→      }
+  3566→      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
+  3567→      const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
+  3568→      const forceProxy = isExchangeUrl;
+  3569→      let lastErr = null;
+  3570→
+  3571→      // 1) Tenta proxy (render/local)
+  3572→      try {
+  3573→        const proxyUrl = buildProxyUrl(url);
+  3574→        if (!proxyUrl) {
+  3575→          lastErr = 'Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base';
+  3576→        } else {
+  3577→          const h = { ...(opts.headers || {}) };
+  3578→          delete h['content-length']; delete h['Content-Length'];
+  3579→          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
+  3580→          if (r.ok || r.status < 500) return r;
+  3581→        }
+  3582→      } catch (e) {
+  3583→        console.warn('Proxy falhou:', e.message);
+  3584→        lastErr = e.message || 'Proxy offline';
+  3585→        const led = document.getElementById('proxy-led');
+  3586→        if (led) led.style.background = 'var(--red)';
+  3587→      }
+  3588→
+  3589→      // 2) Tenta direto (apenas quando não for exchange/CORS)
+  3590→      if (!forceProxy) {
+  3591→        try {
+  3592→          const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(8000) });
+  3593→          return r;
+  3594→        } catch (e) {
+  3595→          console.warn('Direto falhou:', e.message);
+  3596→        }
+  3597→      }
+  3598→
+  3599→      // 3) Fallback: corsproxy.io (apenas GET público)
+  3600→      if (!opts.method || opts.method === 'GET') {
+  3601→        try {
+  3602→          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
+  3603→          if (r.ok) return r;
+  3604→        } catch (e) { }
+  3605→      }
+  3606→
+  3607→      if (!noThrow) throw new Error(lastErr || 'Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+  3608→    }
+  3609→
+  3610→    // ════════════════════════════════════════════════════════
+  3611→    // SERVER TIMESTAMP — evita erro de relógio local
+  3612→    // ════════════════════════════════════════════════════════
+  3613→    // Offset global calculado uma vez no início
+  3614→    // Offset fixo: relógio do PC está ~56 anos adiantado (2082 em vez de 2026)
+  3615→    // Calculado como: timestamp_correto_2026 - timestamp_errado_pc
+  3616→    let GLOBAL_TS_OFFSET = 0;
+  3617→    let TS_OFFSET_FETCHED = false;
+  3618→
+  3619→    async function initTsOffset() {
+  3620→      if (TS_OFFSET_FETCHED) return;
+  3621→      // Tenta buscar timestamp real do servidor via proxy
+  3622→      const apis = [
+  3623→        { url: 'https://api.mexc.com/api/v3/time', parse: d => d.serverTime },
+  3624→        { url: 'https://api.binance.com/api/v3/time', parse: d => d.serverTime },
+  3625→        { url: 'https://api.kucoin.com/api/v1/timestamp', parse: d => d.data },
+  3626→        { url: 'https://api.gateio.ws/api/v4/spot/time', parse: d => d.server_time * 1000 }
+  3627→      ];
+  3628→      for (const api of apis) {
+  3629→        try {
+  3630→          const before = Date.now();
+  3631→          const r = await apiFetch(api.url, { method: 'GET' }, true);
+  3632→          if (!r) continue;
+  3633→          if (!r.ok) continue;
+  3634→          const d = await r.json();
+  3635→          const serverTs = api.parse(d);
+  3636→          if (serverTs && serverTs > 1000000000000 && serverTs < 2000000000000) {
+  3637→            const latency = Math.round((Date.now() - before) / 2);
+  3638→            GLOBAL_TS_OFFSET = (serverTs + latency) - Date.now();
+  3639→            TS_OFFSET_FETCHED = true;
+  3640→            console.log('[TS] Offset: ' + GLOBAL_TS_OFFSET + 'ms via ' + api.url + ' (ts=' + serverTs + ')');
+  3641→            return;
+  3642→          }
+  3643→        } catch (e) { console.warn('[TS] ' + api.url + ' falhou:', errMsg(e)); continue }
+  3644→      }
+  3645→      // Fallback: se PC está em 2082 (timestamp > ano 2050 = 2524608000000ms)
+  3646→      const wrongNow = Date.now();
+  3647→      if (wrongNow > 2524608000000) {
+  3648→        // Diferença em ms de 2082 para 2026 = ~56 anos
+  3649→        GLOBAL_TS_OFFSET = -(wrongNow - 1740534000000);
+  3650→        console.warn('[TS] Fallback offset: ' + GLOBAL_TS_OFFSET + 'ms');
+  3651→      }
+  3652→      TS_OFFSET_FETCHED = true;
+  3653→    }
+  3654→
+  3655→    function correctTs() {
+  3656→      return Date.now() + GLOBAL_TS_OFFSET;
+  3657→    }
+  3658→
+  3659→    async function getServerTs(exch) {
+  3660→      await initTsOffset();
+  3661→      return correctTs();
+  3662→    }
+  3663→
+  3664→    // ════════════════════════════════════════════════════════
+  3665→    // REAL BALANCE FETCH
+  3666→    // ════════════════════════════════════════════════════════
+  3667→    async function fetchBalances(exch) {
+  3668→      const exl = exch.toLowerCase();
+  3669→      const saved = lsGet('keys_' + exl);
+  3670→      if (!saved || !saved.key || !saved.secret) { setApiSt(exl, 'off', 'Sem key'); setBalDsp(exl, null, null, 'nokey'); return }
+  3671→      setApiSt(exl, 'loading', 'Buscando...');
+  3672→      try {
+  3673→        let res;
+  3674→        if (exl === 'bingx') res = await balBingX(saved);
+  3675→        else if (exl === 'mexc') res = await balMEXC(saved);
+  3676→        else if (exl === 'gate') res = await balGate(saved);
+  3677→        else if (exl === 'kucoin') res = await balKuCoin(saved);
+  3678→        else if (exl === 'bybit') res = await balBybit(saved);
+  3679→        else if (exl === 'okx') res = await balOKX(saved);
+  3680→        else res = { error: 'Saldo não implementado para ' + exch };
+  3681→        // Normaliza nome para bater com chave do objeto BAL
+  3682→        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
+  3683→        if (res.error) {
+  3684→          setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+  3685→          notify('✗ ' + exchKey + ': ' + res.error, 'e');
+  3686→        } else {
+  3687→          if (BAL[exchKey]) { BAL[exchKey].spot = res.spot; BAL[exchKey].futures = res.futures; }
+  3688→          setApiSt(exl, 'on', 'Conectado ✓'); setBalDsp(exl, res.spot, res.futures, 'ok'); updateLed(exl, 'on');
+  3689→          setBalTs(exl); setBalPerms(exl, true); updateBalPanel();
+  3690→          notify('✓ ' + exchKey + ' — Spot: $' + fmt(res.spot) + ' | Fut: $' + fmt(res.futures), 'g');
+  3691→        }
+  3692→      } catch (err) {
+  3693→        setApiSt(exl, 'err', 'Erro conexão'); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+  3694→        notify('⚠ ' + exch + ': ' + errMsg(err), 'w');
+  3695→      }
+  3696→    }
+  3697→
+  3698→    async function balBingX(c) {
+  3699→      const ts = Date.now().toString();
+  3700→      const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3701→      const sig = await hmacHex(p, c.secret);
+  3702→      try {
+  3703→        const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/account/balance?' + p + '&signature=' + sig, { method: 'GET', headers: { 'X-BX-APIKEY': c.key } });
+  3704→        const d = await r.json();
+  3705→        if (d.code !== 0) return { error: 'BingX: ' + (d.msg || 'code ' + d.code) };
+  3706→        const u = (d.data?.balances || []).find(b => b.asset === 'USDT');
+  3707→        const spot = parseFloat(u?.free || 0);
+  3708→        let fut = 0;
+  3709→        try {
+  3710→          const s2 = await hmacHex(p, c.secret);
+  3711→          const r2 = await apiFetch('https://open-api.bingx.com/openApi/swap/v2/user/balance?' + p + '&signature=' + s2, { method: 'GET', headers: { 'X-BX-APIKEY': c.key } });
+  3712→          const d2 = await r2.json();
+  3713→          fut = parseFloat(d2.data?.balance?.availableMargin || 0);
+  3714→        } catch (ef) { }
+  3715→        return { spot, futures: fut };
+  3716→      } catch (e) { return { error: 'BingX: ' + e.message } }
+  3717→    }
+  3718→
+  3719→    async function balMEXC(c) {
+  3720→      const ts = Date.now().toString();
+  3721→      const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3722→      const sig = await hmacHex(p, c.secret);
+  3723→      try {
+  3724→        const r = await apiFetch('https://api.mexc.com/api/v3/account?' + p + '&signature=' + sig, { method: 'GET', headers: { 'X-MEXC-APIKEY': c.key } });
+  3725→        const d = await r.json();
+  3726→        if (d.code && d.code !== 200) return { error: 'MEXC: ' + (d.msg || 'code ' + d.code) };
+  3727→        const u = (d.balances || []).find(b => b.asset === 'USDT');
+  3728→        const spot = parseFloat(u?.free || 0);
+  3729→        let fut = 0;
+  3730→        try {
+  3731→          const ts2 = Date.now().toString();
+  3732→          const strSign = c.key + ts2;
+  3733→          const s2 = await hmacHex(strSign, c.secret);
+  3734→          const r2 = await apiFetch('https://futures.mexc.com/api/v1/private/account/assets', { method: 'GET', headers: { 'ApiKey': c.key, 'Request-Time': ts2, 'Signature': s2, 'Content-Type': 'application/json' } });
+  3735→          const d2 = await r2.json();
+  3736→          const ua = (d2.data || []).find(a => a.currency === 'USDT');
+  3737→          fut = parseFloat(ua?.availableBalance || 0);
+  3738→        } catch (ef) { }
+  3739→        return { spot, futures: fut };
+  3740→      } catch (e) { return { error: 'MEXC: ' + e.message } }
+  3741→    }
+  3742→
+  3743→    async function balGate(c) {
+  3744→      const tsSec = Math.floor(Date.now() / 1000).toString();
+  3745→      const bodyHash = await sha512hex('');
+  3746→      const signStr = 'GET\n/api/v4/spot/accounts\n\n' + bodyHash + '\n' + tsSec;
+  3747→      const sig = await hmacHex(signStr, c.secret, 'SHA-512');
+  3748→      try {
+  3749→        const r = await apiFetch('https://api.gateio.ws/api/v4/spot/accounts', { method: 'GET', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec, 'Content-Type': 'application/json' } });
+  3750→        const d = await r.json();
+  3751→        if (!Array.isArray(d)) return { error: 'Gate: ' + (d.message || JSON.stringify(d).slice(0, 60)) };
+  3752→        const spot = parseFloat(d.find(b => b.currency === 'USDT')?.available || 0);
+  3753→        let fut = 0;
+  3754→        try {
+  3755→          const s2Str = 'GET\n/api/v4/futures/usdt/accounts\n\n' + bodyHash + '\n' + tsSec;
+  3756→          const s2 = await hmacHex(s2Str, c.secret, 'SHA-512');
+  3757→          const r2 = await apiFetch('https://api.gateio.ws/api/v4/futures/usdt/accounts', { method: 'GET', headers: { 'KEY': c.key, 'SIGN': s2, 'Timestamp': tsSec, 'Content-Type': 'application/json' } });
+  3758→          const d2 = await r2.json();
+  3759→          fut = parseFloat(d2.available || d2.total || 0);
+  3760→        } catch (ef) { }
+  3761→        return { spot, futures: fut };
+  3762→      } catch (e) { return { error: 'Gate: ' + e.message } }
+  3763→    }
+  3764→
+  3765→    async function balKuCoin(c) {
+  3766→      if (!c.passphrase) return { error: 'KuCoin: Passphrase obrigatorio' };
+  3767→      const ts = Date.now().toString();
+  3768→      const path = '/api/v1/accounts';
+  3769→      const query = 'currency=USDT';
+  3770→      const sig = await hmacB64(ts + 'GET' + path + '?' + query, c.secret);
+  3771→      const pp = await hmacB64(c.passphrase, c.secret);
+  3772→      try {
+  3773→        const r = await apiFetch('https://api.kucoin.com' + path + '?' + query, { method: 'GET', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' } });
+  3774→        const d = await r.json();
+  3775→        if (d.code !== '200000') return { error: 'KuCoin: ' + (d.msg || 'code ' + d.code) };
+  3776→        const accs = d.data || [];
+  3777→        const spot = parseFloat(accs.find(a => a.type === 'trade' && a.currency === 'USDT')?.available || 0);
+  3778→        let fut = 0;
+  3779→        try {
+  3780→          const ts2 = Date.now().toString();
+  3781→          const fPath = '/api/v1/account-overview';
+  3782→          const fQuery = 'currency=USDT';
+  3783→          const sig2 = await hmacB64(ts2 + 'GET' + fPath + '?' + fQuery, c.secret);
+  3784→          const pp2 = await hmacB64(c.passphrase, c.secret);
+  3785→          const r2 = await apiFetch('https://api-futures.kucoin.com' + fPath + '?' + fQuery, { method: 'GET', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig2, 'KC-API-TIMESTAMP': ts2, 'KC-API-PASSPHRASE': pp2, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' } });
+  3786→          const d2 = await r2.json();
+  3787→          if (d2.code === '200000' && d2.data) fut = parseFloat(d2.data.availableBalance || 0);
+  3788→        } catch (ef) { }
+  3789→        return { spot, futures: fut };
+  3790→      } catch (e) { return { error: 'KuCoin: ' + e.message } }
+  3791→    }
+  3792→    async function balBybit(c) {
+  3793→      // Bybit V5 — HMAC-SHA256(ts + apiKey + recvWindow + queryString, secret)
+  3794→      try {
+  3795→        const ts = (Date.now() + GLOBAL_TS_OFFSET).toString();
+  3796→        const recv = '5000';
+  3797→        const qSpot = 'accountType=UNIFIED&coin=USDT';
+  3798→        const sigSpot = await hmacHex(ts + c.key + recv + qSpot, c.secret);
+  3799→        const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-SIGN': sigSpot, 'X-BAPI-RECV-WINDOW': recv };
+  3800→        const r = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qSpot, { method: 'GET', headers: h });
+  3801→        if (!r) return { error: 'Bybit: sem resposta' };
+  3802→        const d = await r.json();
+  3803→        if (d.retCode !== 0) return { error: 'Bybit: ' + (d.retMsg || 'code ' + d.retCode) };
+  3804→        const coins = d.result?.list?.[0]?.coin || [];
+  3805→        const usdt = coins.find(c => c.coin === 'USDT');
+  3806→        const spot = parseFloat(usdt?.walletBalance || 0);
+  3807→        // Futures balance
+  3808→        const qFut = 'accountType=CONTRACT&coin=USDT';
+  3809→        const ts2 = (Date.now() + GLOBAL_TS_OFFSET).toString();
+  3810→        const sigFut = await hmacHex(ts2 + c.key + recv + qFut, c.secret);
+  3811→        const h2 = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts2, 'X-BAPI-SIGN': sigFut, 'X-BAPI-RECV-WINDOW': recv };
+  3812→        const r2 = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qFut, { method: 'GET', headers: h2 });
+  3813→        let fut = 0;
+  3814→        if (r2) { const d2 = await r2.json(); if (d2.retCode === 0) { const c2 = d2.result?.list?.[0]?.coin || []; const u2 = c2.find(x => x.coin === 'USDT'); fut = parseFloat(u2?.walletBalance || 0); } }
+  3815→        return { spot, futures: fut };
+  3816→      } catch (e) { return { error: 'Bybit: ' + e.message } }
+  3817→    }
+  3818→    async function balOKX(c) {
+  3819→      // OKX V5 — HMAC-SHA256-Base64(ts + 'GET' + path, secret)
+  3820→      if (!c.passphrase) return { error: 'OKX: Passphrase obrigatória' };
+  3821→      try {
+  3822→        const ts = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+  3823→        const path = '/api/v5/asset/balances?ccy=USDT';
+  3824→        const sig = await hmacB64(ts + 'GET' + path, c.secret);
+  3825→        const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+  3826→        const r = await apiFetch('https://www.okx.com' + path, { method: 'GET', headers: h });
+  3827→        if (!r) return { error: 'OKX: sem resposta' };
+  3828→        const d = await r.json();
+  3829→        if (d.code !== '0') return { error: 'OKX: ' + (d.msg || 'code ' + d.code) };
+  3830→        const spot = parseFloat(d.data?.[0]?.availBal || 0);
+  3831→        // Futures (trading account)
+  3832→        const path2 = '/api/v5/account/balance?ccy=USDT';
+  3833→        const ts2 = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+  3834→        const sig2 = await hmacB64(ts2 + 'GET' + path2, c.secret);
+  3835→        const h2 = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig2, 'OK-ACCESS-TIMESTAMP': ts2, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+  3836→        const r2 = await apiFetch('https://www.okx.com' + path2, { method: 'GET', headers: h2 });
+  3837→        let fut = 0;
+  3838→        if (r2) { const d2 = await r2.json(); if (d2.code === '0') { const det = d2.data?.[0]?.details || []; const u2 = det.find(x => x.ccy === 'USDT'); fut = parseFloat(u2?.availBal || 0); } }
+  3839→        return { spot, futures: fut };
+  3840→      } catch (e) { return { error: 'OKX: ' + e.message } }
+  3841→    }
+  3842→    // ════════════════════════════════════════════════════════
+  3843→    // PLACE REAL ORDERS
+  3844→    // ════════════════════════════════════════════════════════
+  3845→    async function placeRealOrder(exch, symbol, side, qty, price, isSpot) {
+  3846→      const exl = exch.toLowerCase();
+  3847→      const c = lsGet('keys_' + exl);
+  3848→      if (!c || !c.key) throw new Error('Key ' + exch + ' não configurada');
+  3849→      if (exl === 'bingx') return placeOrderBingX(c, symbol, side, qty, price, isSpot);
+  3850→      if (exl === 'mexc') return placeOrderMEXC(c, symbol, side, qty, price, isSpot);
+  3851→      if (exl === 'gate') return placeOrderGate(c, symbol, side, qty, price, isSpot);
+  3852→      if (exl === 'kucoin') return placeOrderKuCoin(c, symbol, side, qty, price, isSpot);
+  3853→      throw new Error('Exchange desconhecida');
+  3854→    }
+  3855→
+  3856→    async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
+  3857→      // BingX: params in query string, signed with HMAC-SHA256
+  3858→      const ts = Date.now().toString();
+  3859→      const sf = sym.replace('/', '').replace('-USDT', '').concat('-USDT');
+  3860→      const params = isSpot
+  3861→        ? 'symbol=' + sf + '&side=' + side.toUpperCase() + '&type=LIMIT&quantity=' + qty + '&price=' + price + '&timeInForce=GTC&timestamp=' + ts + '&recvWindow=5000'
+  3862→        : 'symbol=' + sf + '&side=' + side.toUpperCase() + '&positionSide=LONG&type=LIMIT&quantity=' + qty + '&price=' + price + '&timestamp=' + ts + '&recvWindow=5000';
+  3863→      const sig = await hmacHex(params, c.secret);
+  3864→      const ep = isSpot ? '/openApi/spot/v1/trade/order' : '/openApi/swap/v2/trade/order';
+  3865→      try {
+  3866→        const r = await apiFetch('https://open-api.bingx.com' + ep + '?' + params + '&signature=' + sig, { method: 'POST', headers: { 'X-BX-APIKEY': c.key, 'Content-Type': 'application/json' } });
+  3867→        const d = await r.json();
+  3868→        if (d.code !== 0) throw new Error('BingX: ' + (d.msg || 'code ' + d.code));
+  3869→        return { orderId: d.data?.orderId || d.data?.order?.orderId, exchange: 'BingX', symbol: sym, side, qty, price };
+  3870→      } catch (e) { throw new Error('BingX ordem: ' + e.message) }
+  3871→    }
+  3872→
+  3873→    async function placeOrderMEXC(c, sym, side, qty, price, isSpot) {
+  3874→      // MEXC Spot: body JSON com symbol, params de autenticação no query string
+  3875→      // MEXC requires symbol in BODY for POST orders
+  3876→      const ts = Date.now().toString();
+  3877→      const sf = sym.replace('/', '');
+  3878→      if (isSpot) {
+  3879→        // Spot: symbol e dados no body JSON, auth no query
+  3880→        const bodyObj = { symbol: sf, side: side.toUpperCase(), type: 'LIMIT', quantity: String(qty), price: String(price), timeInForce: 'GTC' };
+  3881→        const bodyStr = JSON.stringify(bodyObj);
+  3882→        const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3883→        const sig = await hmacHex(p, c.secret);
+  3884→        try {
+  3885→          const r = await apiFetch('https://api.mexc.com/api/v3/order?' + p + '&signature=' + sig, { method: 'POST', headers: { 'X-MEXC-APIKEY': c.key, 'Content-Type': 'application/json' }, body: bodyStr });
+  3886→          const d = await r.json();
+  3887→          if (d.code && d.code !== 200) throw new Error('MEXC Spot: ' + (d.msg || 'code ' + d.code));
+  3888→          return { orderId: d.orderId, exchange: 'MEXC', symbol: sym, side, qty, price };
+  3889→        } catch (e) { throw new Error('MEXC spot ordem: ' + e.message) }
+  3890→      } else {
+  3891→        // Futures: contract.mexc.com, sign = HMAC(apiKey+ts)
+  3892→        const ts2 = Date.now().toString();
+  3893→        const strSign = c.key + ts2;
+  3894→        const sig2 = await hmacHex(strSign, c.secret);
+  3895→        const bodyObj = { symbol: sf + '_USDT', side: side.toUpperCase() === 'BUY' ? 1 : 3, orderType: 1, price: String(price), vol: String(qty), openType: 1, type: 1 };
+  3896→        try {
+  3897→          const r = await apiFetch('https://futures.mexc.com/api/v1/private/order/create', { method: 'POST', headers: { 'ApiKey': c.key, 'Request-Time': ts2, 'Signature': sig2, 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj) });
+  3898→          const d = await r.json();
+  3899→          if (!d.success) throw new Error('MEXC Fut: ' + (d.message || 'erro'));
+  3900→          return { orderId: d.data, exchange: 'MEXC', symbol: sym, side, qty, price };
+  3901→        } catch (e) { throw new Error('MEXC fut ordem: ' + e.message) }
+  3902→      }
+  3903→    }
+  3904→
+  3905→    async function placeOrderGate(c, sym, side, qty, price, isSpot) {
+  3906→      // Gate.io: HMAC-SHA512, body hash no signed string
+  3907→      const tsSec = Math.floor(Date.now() / 1000).toString();
+  3908→      const sf = sym.replace('/', '_');
+  3909→      const bodyObj = isSpot
+  3910→        ? { currency_pair: sf, side: side.toLowerCase(), type: 'limit', amount: String(qty), price: String(price), time_in_force: 'gtc' }
+  3911→        : { contract: sf, size: side.toLowerCase() === 'buy' ? Math.abs(qty) : -Math.abs(qty), price: String(price), tif: 'gtc' };
+  3912→      const bodyStr = JSON.stringify(bodyObj);
+  3913→      const bh = await sha512hex(bodyStr);
+  3914→      const path = isSpot ? '/api/v4/spot/orders' : '/api/v4/futures/usdt/orders';
+  3915→      const signStr = 'POST\n' + path + '\n\n' + bh + '\n' + tsSec;
+  3916→      const sig = await hmacHex(signStr, c.secret, 'SHA-512');
+  3917→      try {
+  3918→        const r = await apiFetch('https://api.gateio.ws' + path, { method: 'POST', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec, 'Content-Type': 'application/json' }, body: bodyStr });
+  3919→        const d = await r.json();
+  3920→        if (d.message && d.message !== 'ok' && !d.id) throw new Error('Gate: ' + d.message);
+  3921→        return { orderId: d.id, exchange: 'Gate', symbol: sym, side, qty, price };
+  3922→      } catch (e) { throw new Error('Gate ordem: ' + e.message) }
+  3923→    }
+  3924→
+  3925→    async function placeOrderKuCoin(c, sym, side, qty, price, isSpot) {
+  3926→      // KuCoin: sign = HMAC-SHA256-B64(ts+method+path+body)
+  3927→      if (!c.passphrase) throw new Error('KuCoin: Passphrase obrigatorio');
+  3928→      const ts = Date.now().toString();
+  3929→      const sf = isSpot ? sym.replace('/', '-') : sym.replace('/', '');
+  3930→      const path = isSpot ? '/api/v1/orders' : '/api/v1/orders';
+  3931→      const host = isSpot ? 'https://api.kucoin.com' : 'https://api-futures.kucoin.com';
+  3932→      const clientOid = 'arb' + ts + Math.random().toString(36).slice(2, 6);
+  3933→      const bodyObj = isSpot
+  3934→        ? { clientOid, symbol: sf, side: side.toLowerCase(), type: 'limit', price: String(price), size: String(qty) }
+  3935→        : { clientOid, symbol: sf, side: side.toLowerCase(), type: 'limit', price: String(price), size: String(qty), leverage: '1' };
+  3936→      const bodyStr = JSON.stringify(bodyObj);
+  3937→      const sig = await hmacB64(ts + 'POST' + path + bodyStr, c.secret);
+  3938→      const pp = await hmacB64(c.passphrase, c.secret);
+  3939→      try {
+  3940→        const r = await apiFetch(host + path, { method: 'POST', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' }, body: bodyStr });
+  3941→        const d = await r.json();
+  3942→        if (d.code !== '200000') throw new Error('KuCoin: ' + (d.msg || 'code ' + d.code));
+  3943→        return { orderId: d.data?.orderId, exchange: 'KuCoin', symbol: sym, side, qty, price };
+  3944→      } catch (e) { throw new Error('KuCoin ordem: ' + e.message) }
+  3945→    }
+  3946→    async function testApi(exch) {
+  3947→      const s = lsGet('keys_' + exch);
+  3948→      if (!s || !s.key) { notify('⚠ Salve a key do ' + exch + ' primeiro', 'w'); return }
+  3949→      notify('🔌 Testando ' + exch + '...', '');
+  3950→      await fetchBalances(exch);
+  3951→    }
+  3952→
+  3953→    // ════════════════════════════════════════════════════════
+  3954→    // UI HELPERS
+  3955→    // ════════════════════════════════════════════════════════
+  3956→    function setApiSt(exl, state, txt) {
+  3957→      const dot = document.getElementById(exl + '-dot');
+  3958→      const stat = document.getElementById(exl + '-status');
+  3959→      if (dot) { dot.className = 'api-status-dot'; if (state === 'on') dot.classList.add('on'); else if (state === 'err') dot.classList.add('err'); else if (state === 'loading') dot.classList.add('loading'); else dot.classList.add('off') }
+  3960→      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--green)' : state === 'err' ? 'var(--red)' : state === 'loading' ? 'var(--yellow)' : 'var(--dim)' }
+  3961→    }
+  3962→    function setBalDsp(exl, spot, fut, state) {
+  3963→      const bs = document.getElementById(exl + '-bal-s'), bf = document.getElementById(exl + '-bal-f');
+  3964→      const cls = 'apibv ' + (state === 'ok' ? 'ok' : state === 'error' ? 'err' : 'loading');
+  3965→      if (bs) { bs.className = cls; bs.textContent = state === 'ok' ? '$' + fmt(spot) : state === 'nokey' ? 'Sem key' : '—' }
+  3966→      if (bf) { bf.className = cls; bf.textContent = state === 'ok' ? '$' + fmt(fut) : state === 'nokey' ? 'Sem key' : '—' }
+  3967→    }
+  3968→    function setBalTs(exl) { const el = document.getElementById(exl + '-bal-ts'); if (el) el.textContent = new Date().toLocaleTimeString('pt-BR') }
+  3969→    function setBalPerms(exl, ok) {
+  3970→      const el = document.getElementById(exl + '-perms'); if (!el) return;
+  3971→      el.innerHTML = ok ? '<span class="apiperm ok">✓ SPOT</span><span class="apiperm ok">✓ FUTURES</span><span class="apiperm ok">✓ TRADE</span><span class="apiperm no">✗ WITHDRAW</span>' : '<span class="apiperm no">✗ SPOT</span><span class="apiperm no">✗ FUTURES</span><span class="apiperm no">✗ TRADE</span><span class="apiperm no">✗ WITHDRAW</span>';
+  3972→    }
+  3973→    function updateLed(exl, state) {
+  3974→      const ld = document.getElementById('ld-' + exl); if (!ld) return;
+  3975→      ld.className = 'ld';
+  3976→      if (state === 'on') ld.classList.add('ld-on');
+  3977→      else if (state === 'err') ld.classList.add('ld-err');
+  3978→      else if (state === 'warn') ld.classList.add('ld-warn');
+  3979→    }
+  3980→    function toggleEye(id, btn) {
+  3981→      const inp = document.getElementById(id); if (!inp) return;
+  3982→      inp.type = inp.type === 'password' ? 'text' : 'password';
+  3983→      btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  3984→    }
+  3985→    function applyProxy() {
+  3986→      const inp = document.getElementById('proxy-input');
+  3987→      if (!inp) return;
+  3988→      const val = inp.value.trim().replace(/\/+$/, '');
+  3989→      if (!val) {
+  3990→        localStorage.removeItem('proxy_base');
+  3991→        notify('Proxy removido', 'w');
+  3992→      } else {
+  3993→        localStorage.setItem('proxy_base', val);
+  3994→        notify('Proxy: ' + val, '');
+  3995→      }
+  3996→      pingProxy();
+  3997→    }
+  3998→    async function pingProxy() {
+  3999→      const led = document.getElementById('proxy-led');
+  4000→      if (!led) return;
+  4001→      const pb = getProxyBase();
+  4002→      if (!pb) { led.style.background = '#334'; return; }
+  4003→      led.style.background = 'var(--yellow)';
+  4004→      led.title = 'Verificando...';
+  4005→      try {
+  4006→        const r = await fetch(pb + '/proxy?_target=' + encodeURIComponent('https://api.bybit.com/v5/market/time'), { signal: AbortSignal.timeout(6000) });
+  4007→        const ok = r.ok || r.status < 500;
+  4008→        led.style.background = ok ? 'var(--green)' : 'var(--red)';
+  4009→        led.title = ok ? 'Proxy OK: ' + pb : 'Proxy erro ' + r.status + ': ' + pb;
+  4010→      } catch (e) {
+  4011→        led.style.background = 'var(--red)';
+  4012→        led.title = 'Proxy offline: ' + (e.message || pb);
+  4013→      }
+  4014→    }
+  4015→    function notify(msg, type = '') {
+  4016→      const el = document.createElement('div');
+  4017→      el.className = 'ni' + (type ? ' ' + type : ''); el.textContent = msg;
+  4018→      document.getElementById('notif').appendChild(el);
+  4019→      setTimeout(() => el.remove(), 4000);
+  4020→    }
+  4021→    function errMsg(err) {
+  4022→      if (!err) return 'Erro desconhecido';
+  4023→      if (err.message) return err.message;
+  4024→      try { return JSON.stringify(err); } catch (e) { return String(err) }
+  4025→    }
+  4026→    const _locks = new Map();
+  4027→    async function withLock(key, fn, ms = 800) {
+  4028→      if (_locks.get(key)) return null;
+  4029→      _locks.set(key, true);
+  4030→      try { return await fn(); }
+  4031→      finally {
+  4032→        setTimeout(() => _locks.delete(key), ms);
+  4033→      }
+  4034→    }
+  4035→    function clampNum(v, min = 0, max = null, dec = 8) {
+  4036→      let n = parseFloat(v);
+  4037→      if (isNaN(n) || !isFinite(n)) n = min;
+  4038→      if (n < min) n = min;
+  4039→      if (max !== null && n > max) n = max;
+  4040→      const f = Math.pow(10, dec);
+  4041→      return Math.round(n * f) / f;
+  4042→    }
+  4043→    function normalizeNumberInput(id, min = 0, max = null, dec = 8) {
+  4044→      const el = document.getElementById(id);
+  4045→      if (!el) return;
+  4046→      el.value = clampNum(el.value, min, max, dec);
+  4047→    }
+  4048→    function toggleLimitInputs() {
+  4049→      const t = document.getElementById('ordType')?.value || 'LIMIT';
+  4050→      const lb = document.getElementById('lBuy');
+  4051→      const ls = document.getElementById('lSell');
+  4052→      const isMarket = t === 'MARKET';
+  4053→      if (lb) lb.disabled = isMarket;
+  4054→      if (ls) ls.disabled = isMarket;
+  4055→      if (isMarket) {
+  4056→        const r = filteredRows[selIdx];
+  4057→        if (r) {
+  4058→          if (lb) lb.value = r.buyAt;
+  4059→          if (ls) ls.value = r.sellAt;
+  4060→        }
+  4061→      }
+  4062→    }
+  4063→    window.addEventListener('unhandledrejection', e => {
+  4064→      console.warn('[UNHANDLED]', errMsg(e.reason));
+  4065→      e.preventDefault();
+  4066→    });
+  4067→    function fmt(n) {
+  4068→      if (n == null || n === undefined) return '—'; n = parseFloat(n); if (isNaN(n)) return '—';
+  4069→      if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return n.toFixed(2);
+  4070→    }
+  4071→    function fmtP(n, dec = 2) { if (n == null) return '—'; return parseFloat(n).toFixed(dec) }
+  4072→    function fmtDate(d) { if (!d) return '—'; const dt = d instanceof Date ? d : new Date(d); return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }
+  4073→
+  4074→    // ════════════════════════════════════════════════════════
+  4075→    // BALANCE PANEL — real values from BAL
+  4076→    // ════════════════════════════════════════════════════════
+  4077→    function getArbMode() { return document.getElementById('arbMode')?.value || 'SS' }
+  4078→    function getBuyExch() { return document.getElementById('buyEx')?.value || 'BingX' }
+  4079→    function getSellExch() { return document.getElementById('sellEx')?.value || 'MEXC' }
+  4080→    function getBuyType() { const m = getArbMode(); return (m === 'FF' || m === 'FS') ? 'futures' : 'spot' }
+  4081→    function getSellType() { const m = getArbMode(); return (m === 'FF' || m === 'SF') ? 'futures' : 'spot' }
+  4082→    function getAvailBuy() { const b = BAL[getBuyExch()]; if (!b) return 0; return b[getBuyType()] || 0 }
+  4083→    function getAvailSell() { const b = BAL[getSellExch()]; if (!b) return 0; return b[getSellType()] || 0 }
+  4084→    function getMaxUsdt() { return Math.min(getAvailBuy() || 0, getAvailSell() || 0) }
+  4085→    function getCurrentPrice() { const r = filteredRows[selIdx]; return r ? r.buyAt : 0 }
+  4086→    function getBuyBase() { const r = filteredRows[selIdx]; return r ? r.sym.split('/')[0] : 'TOKEN' }
+  4087→
+  4088→    function updateBalPanel() {
+  4089→      const buyExch = getBuyExch(), sellExch = getSellExch();
+  4090→      const buyType = getBuyType(), sellType = getSellType();
+  4091→      const buyBal = getAvailBuy(), sellBal = getAvailSell();
+  4092→      const price = getCurrentPrice();
+  4093→      (function () { var __t = document.getElementById('balBuyName'); if (__t) __t.textContent = buyExch; })();
+  4094→      (function () { var __t = document.getElementById('balSellName'); if (__t) __t.textContent = sellExch; })();
+  4095→      (function () { var __t = document.getElementById('balBuyType'); if (__t) __t.textContent = buyType.toUpperCase(); })();
+  4096→      (function () { var __t = document.getElementById('balSellType'); if (__t) __t.textContent = sellType.toUpperCase(); })();
+  4097→      const bbu = document.getElementById('balBuyUsdt'), bsu = document.getElementById('balSellUsdt');
+  4098→      const bbt = document.getElementById('balBuyAsset'), bst = document.getElementById('balSellAsset');
+  4099→      if (bbu && BAL[buyExch] && BAL[buyExch][buyType] === null) { bbu.className = 'balusdt nokey'; bbu.textContent = 'Configure key →'; if (bbt) bbt.textContent = '' }
+  4100→      else if (bbu) { bbu.className = 'balusdt ' + (buyBal > 100 ? 'ok' : buyBal > 10 ? 'low' : 'empty'); bbu.textContent = '$' + fmt(buyBal); if (bbt && price > 0) bbt.textContent = '≈ ' + (buyBal / price).toFixed(6) + ' ' + getBuyBase(); else if (bbt) bbt.textContent = '' }
+  4101→      if (bsu && BAL[sellExch] && BAL[sellExch][sellType] === null) { bsu.className = 'balusdt nokey'; bsu.textContent = 'Configure key →'; if (bst) bst.textContent = '' }
+  4102→      else if (bsu) { bsu.className = 'balusdt ' + (sellBal > 100 ? 'ok' : sellBal > 10 ? 'low' : 'empty'); bsu.textContent = '$' + fmt(sellBal); if (bst && price > 0) bst.textContent = '≈ ' + (sellBal / price).toFixed(6) + ' ' + getBuyBase(); else if (bst) bst.textContent = '' }
+  4103→      updateQtyDisplay();
+  4104→    }
+  4105→
+  4106→    function updateQtyDisplay() {
+  4107→      const maxU = getMaxUsdt(), price = getCurrentPrice();
+  4108→      const rawVal = parseFloat(document.getElementById('qty')?.value || '0') || 0;
+  4109→      let usdt = 0, token = 0;
+  4110→      if (qtyMode === 'usdt') { usdt = rawVal; token = price > 0 ? usdt / price : 0 }
+  4111→      else { token = rawVal; usdt = price > 0 ? token * price : 0 }
+  4112→      (function () { var __t = document.getElementById('qtyResUsdt'); if (__t) __t.textContent = usdt > 0 ? '$' + fmt(usdt) : '—'; })();
+  4113→      (function () { var __t = document.getElementById('qtyResAsset'); if (__t) __t.textContent = token > 0 ? token.toFixed(6) + ' ' + getBuyBase() : '—'; })();
+  4114→      (function () { var __t = document.getElementById('qtyUnit'); if (__t) __t.textContent = qtyMode === 'usdt' ? 'USDT' : getBuyBase(); })();
+  4115→      const warn = document.getElementById('qtyInsuf');
+  4116→      const buyB = getAvailBuy(), sellB = getAvailSell();
+  4117→      if (warn) { if (buyB > 0 && sellB > 0 && usdt > 0 && (usdt > buyB || usdt > sellB)) warn.classList.add('show'); else warn.classList.remove('show'); }
+  4118→    }
+  4119→
+  4120→    function setQtyMode(mode) {
+  4121→      qtyMode = mode;
+  4122→      document.getElementById('modeUsdt')?.classList.toggle('on', mode === 'usdt');
+  4123→      document.getElementById('modeToken')?.classList.toggle('on', mode === 'token');
+  4124→      document.getElementById('qty').value = '';
+  4125→      document.getElementById('qty').placeholder = mode === 'usdt' ? 'USDT...' : 'Tokens...';
+  4126→      updateQtyDisplay();
+  4127→    }
+  4128→
+  4129→    function setQtyPct(pct, el) {
+  4130→      document.querySelectorAll('.qpb').forEach(b => b.classList.remove('on'));
+  4131→      if (el) el.classList.add('on');
+  4132→      const maxU = getMaxUsdt(), price = getCurrentPrice();
+  4133→      if (qtyMode === 'usdt') { document.getElementById('qty').value = (maxU * pct / 100).toFixed(2) }
+  4134→      else { const maxT = price > 0 ? maxU / price : 0; document.getElementById('qty').value = (maxT * pct / 100).toFixed(6) }
+  4135→      updateQtyDisplay();
+  4136→    }
+  4137→
+  4138→    function onQtyInput() { document.querySelectorAll('.qpb').forEach(b => b.classList.remove('on')); updateQtyDisplay() }
+  4139→    function useMaxBuy() { const b = getAvailBuy(); if (qtyMode === 'usdt') document.getElementById('qty').value = b.toFixed(2); else { const p = getCurrentPrice(); document.getElementById('qty').value = p > 0 ? (b / p).toFixed(6) : '0' } updateQtyDisplay() }
+  4140→    function useMaxSell() { const b = getAvailSell(); if (qtyMode === 'usdt') document.getElementById('qty').value = b.toFixed(2); else { const p = getCurrentPrice(); document.getElementById('qty').value = p > 0 ? (b / p).toFixed(6) : '0' } updateQtyDisplay() }
+  4141→    function getOrderUSDT() { const val = parseFloat(document.getElementById('qty').value) || 0; const price = getCurrentPrice(); return qtyMode === 'usdt' ? val : (price > 0 ? val * price : 0) }
+  4142→    function getOrderToken() { const val = parseFloat(document.getElementById('qty').value) || 0; const price = getCurrentPrice(); return qtyMode === 'token' ? val : (price > 0 ? val / price : 0) }
+  4143→
+  4144→    // ════════════════════════════════════════════════════════
+  4145→    // PAGE SWITCHING
+  4146→    // ════════════════════════════════════════════════════════
+  4147→    function switchPage(p, tab) {
+  4148→      document.querySelectorAll('.page').forEach(pg => pg.classList.remove('on'));
+  4149→      document.querySelectorAll('.gtab').forEach(t => t.classList.remove('on', 'on-api', 'on-res'));
+  4150→      if (p === 'scanner') { document.getElementById('pgScanner').classList.add('on'); tab.classList.add('on') }
+  4151→      else if (p === 'results') { document.getElementById('pgResults').classList.add('on'); tab.classList.add('on-res') }
+  4152→      else if (p === 'api') { document.getElementById('pgApi').classList.add('on'); tab.classList.add('on-api') }
+  4153→    }
+  4154→    function switchRes(p, tab) {
+  4155→      document.querySelectorAll('.ressp').forEach(s => s.classList.remove('on'));
+  4156→      document.querySelectorAll('.restab').forEach(t => t.classList.remove('on'));
+  4157→      document.getElementById('res-' + p).classList.add('on'); tab.classList.add('on');
+  4158→      if (p === 'orders') renderOrders();
+  4159→      if (p === 'daily') renderDaily();
+  4160→    }
+  4161→
+  4162→    // ════════════════════════════════════════════════════════
+  4163→    // SCANNER
+  4164→    // ════════════════════════════════════════════════════════
+  4165→    function getModes() { return { SS: document.getElementById('tog-ss')?.checked, SF: document.getElementById('tog-sf')?.checked, FS: document.getElementById('tog-fs')?.checked, FF: document.getElementById('tog-ff')?.checked } }
+  4166→
+  4167→    function genRows() {
+  4168→      const modes = getModes();
+  4169→      allRows = [];
+  4170→      // Somente SPOT (SS) com dados reais
+  4171→      if (!modes.SS) {
+  4172→        const now = Date.now();
+  4173→        if (now - MODE_WARN_TS > 5000) {
+  4174→          notify('? Apenas SPOT/SS dispon?vel com dados reais', 'w');
+  4175→          MODE_WARN_TS = now;
+  4176→        }
+  4177→        return;
+  4178→      }
+  4179→      PAIRS.forEach(sym => {
+  4180→        const pairs = [];
+  4181→        for (let i = 0; i < EXCHS.length; i++) {
+  4182→          for (let j = 0; j < EXCHS.length; j++) {
+  4183→            if (i !== j) pairs.push([EXCHS[i], EXCHS[j]]);
+  4184→          }
+  4185→        }
+  4186→        pairs.forEach(([bEx, sEx]) => {
+  4187→          const qb = QUOTES[bEx]?.[sym];
+  4188→          const qs = QUOTES[sEx]?.[sym];
+  4189→          if (!qb || !qs || !qb.ask || !qs.bid) return;
+  4190→          const ask = qb.ask, bid = qs.bid;
+  4191→          if (ask <= 0 || bid <= 0) return;
+  4192→          const sp = +(((bid - ask) / ask) * 100).toFixed(3);
+  4193→          if (sp < 0.01) return;
+  4194→          const fees = (FEE[bEx] || 0) + (FEE[sEx] || 0);
+  4195→          const fr = 0;
+  4196→          const net = +(sp - fees * 100).toFixed(3);
+  4197→          const buyAt = +ask.toFixed(ask > 1000 ? 2 : 4);
+  4198→          const sellAt = +bid.toFixed(bid > 1000 ? 2 : 4);
+  4199→          let liq = null;
+  4200→          if (qb.askQty && qs.bidQty) {
+  4201→            liq = (qb.askQty * ask) + (qs.bidQty * bid);
+  4202→          }
+  4203→          allRows.push({ sym, type: 'SS', exchs: [bEx, sEx], spread: sp, fees, fr, net, buyAt, sellAt, liq, rank: 0 });
+  4204→        });
+  4205→      });
+  4206→      allRows.sort((a, b) => b.spread - a.spread); allRows.forEach((r, i) => r.rank = i + 1);
+  4207→    }
+  4208→
+  4209→    function apf(t, el) {
+  4210→      afTypeF = t; document.querySelectorAll('.ftag').forEach(b => b.classList.remove('on')); el.classList.add('on'); applyF();
+  4211→    }
+  4212→
+  4213→    function applyF() {
+  4214→      const type = document.getElementById('fType').value;
+  4215→      const minSp = parseFloat(document.getElementById('fSp').value) || 0;
+  4216→      const minL = parseFloat(document.getElementById('fLiq').value) || 0;
+  4217→      const ex = document.getElementById('fEx').value;
+  4218→      const srch = (document.getElementById('fSym').value || '').toUpperCase();
+  4219→      filteredRows = allRows.filter(r => {
+  4220→        if (afTypeF !== 'all' && r.type !== afTypeF) return false;
+  4221→        if (type !== 'all' && r.type !== type) return false;
+  4222→        if (r.spread < minSp) return false; if (r.liq != null && r.liq < minL) return false;
+  4223→        if (ex !== 'all' && !r.exchs.includes(ex)) return false;
+  4224→        if (srch && !r.sym.includes(srch)) return false; return true;
+  4225→      });
+  4226→      if (selIdx >= filteredRows.length) selIdx = 0;
+  4227→      renderScanner(); renderAsset();
+  4228→      (function () { var __t = document.getElementById('oppCnt'); if (__t) __t.textContent = filteredRows.length; })();
+  4229→      (function () { var __t = document.getElementById('scanBadge'); if (__t) __t.textContent = filteredRows.length; })();
+  4230→      (function () { var __t = document.getElementById('listCt'); if (__t) __t.textContent = filteredRows.length; })();
+  4231→      (function () { var __t = document.getElementById('hotCt'); if (__t) __t.textContent = filteredRows.filter(r => r.spread > 0.5).length + ' hot'; })();
+  4232→      const msv = document.getElementById('minSV'); if (msv) msv.textContent = (document.getElementById('fSp')?.value || '0.3') + '%';
+  4233→    }
+  4234→
+  4235→    function sel(i) {
+  4236→      selIdx = i; const r = filteredRows[i]; if (!r) return;
+  4237→      (function () { var __t = document.getElementById('phSym'); if (__t) __t.textContent = r.sym; })();
+  4238→      (function () { var __t = document.getElementById('phType'); if (__t) __t.textContent = r.type; })();
+  4239→      document.getElementById('phType') && (document.getElementById('phType').className = 'at t' + r.type.toLowerCase());
+  4240→      (function () { var __t = document.getElementById('phSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4241→      (function () { var __t = document.getElementById('phNet'); if (__t) __t.textContent = (r.net > 0 ? '+' : '') + r.net.toFixed(3) + '%'; })();
+  4242→      (function () { var __t = document.getElementById('phBE'); if (__t) __t.textContent = r.exchs[0]; })(); (function () { var __t = document.getElementById('phSE'); if (__t) __t.textContent = r.exchs[1]; })();
+  4243→      (function () { var __t = document.getElementById('obBE'); if (__t) __t.textContent = r.exchs[0]; })(); (function () { var __t = document.getElementById('obSE'); if (__t) __t.textContent = r.exchs[1]; })();
+  4244→      (function () { var __t = document.getElementById('qePair'); if (__t) __t.textContent = r.sym; })();
+  4245→      (document.getElementById('lBuy') || { value: '' }).value = r.buyAt; (document.getElementById('lSell') || { value: '' }).value = r.sellAt;
+  4246→      (document.getElementById('buyEx') || { value: '' }).value = r.exchs[0]; (document.getElementById('sellEx') || { value: '' }).value = r.exchs[1];
+  4247→      const modeEl = document.getElementById('arbMode'); if (modeEl) modeEl.value = r.type === 'FS' ? 'FS' : r.type;
+  4248→      updateBalPanel();
+  4249→      const f1 = FEE[r.exchs[0]] || .075, f2 = FEE[r.exchs[1]] || .020, fr = Math.abs(r.fr), sl = .05;
+  4250→      const net = r.spread - f1 - f2 - fr * 100 - sl;
+  4251→      (function () { var __t = document.getElementById('cSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4252→      (function () { var __t = document.getElementById('cF1'); if (__t) __t.textContent = '-' + f1.toFixed(3) + '%'; })();
+  4253→      (function () { var __t = document.getElementById('cF2'); if (__t) __t.textContent = '-' + f2.toFixed(3) + '%'; })();
+  4254→      (function () { var __t = document.getElementById('cFr'); if (__t) __t.textContent = '-' + fr.toFixed(4) + '%'; })();
+  4255→      (function () { var __t = document.getElementById('cSl'); if (__t) __t.textContent = '-' + sl.toFixed(3) + '%'; })();
+  4256→      const nEl = document.getElementById('cNet');
+  4257→      if (nEl) { nEl.textContent = (net > 0 ? '+' : '') + net.toFixed(3) + '%'; nEl.style.color = net > 0 ? 'var(--g)' : 'var(--r)'; }
+  4258→      const qty = getOrderUSDT() || parseFloat(document.getElementById('cfg-orderSize')?.value || 200);
+  4259→      const uEl = document.getElementById('cUsd');
+  4260→      if (uEl) { uEl.textContent = (net > 0 ? '+$' : '-$') + Math.abs(net / 100 * qty).toFixed(2); uEl.style.color = net > 0 ? 'var(--g)' : 'var(--r)'; }
+  4261→      renderOB(r.buyAt, r.liq);
+  4262→    }
+  4263→
+  4264→    function renderAsset() {
+  4265→      const srch = (document.getElementById('apSrch').value || '').toUpperCase();
+  4266→      const rows = filteredRows.filter(r => !srch || r.sym.includes(srch));
+  4267→      const seen = new Set();
+  4268→      const unique = rows.filter(r => { const k = r.sym + '|' + r.type + '|' + r.exchs.join('-'); if (seen.has(k)) return false; seen.add(k); return true });
+  4269→      document.getElementById('alist').innerHTML = unique.map(r => `<div class="ai${filteredRows.indexOf(r) === selIdx ? ' sel' : ''}" onclick="sel(${filteredRows.indexOf(r)})"><span class="ai-sym">${r.sym.split('/')[0]}<br><span style="font-size:7px;color:var(--dim)">${r.exchs[0]}→${r.exchs[1]}</span></span><span class="ai-sp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(2)}%</span><span class="at t${r.type.toLowerCase()}">${r.type}</span></div>`).join('');
+  4270→    }
+  4271→
+  4272→    function renderScanner() {
+  4273→      document.getElementById('scBody').innerHTML = filteredRows.map((r, i) => `<div class="sr${i === selIdx ? ' sel' : ''}" onclick="sel(${i})"><span style="color:var(--dim);font-size:8px">${r.rank}</span><span style="font-weight:700;font-size:10px">${r.sym}</span><span class="at t${r.type.toLowerCase()}">${r.type}</span><span style="color:var(--mid);font-size:9px">${r.exchs[0]}→${r.exchs[1]}</span><span class="srsp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(3)}%</span><span class="srpr">$${fmtP(r.buyAt, r.buyAt > 100 ? 2 : 4)}</span><span class="srpr">$${fmtP(r.sellAt, r.sellAt > 100 ? 2 : 4)}</span><span class="${r.fr > 0 ? 'srfp' : 'srfn'}">${(r.fr * 100).toFixed(3)}%</span><span><div class="lw"><div class="lb" style="width:${Math.min(80, r.liq / 5000)}px"></div><span class="lv">$${fmt(r.liq)}</span></div></span><span style="font-weight:700;font-size:10px;color:${r.net > 0 ? 'var(--g)' : 'var(--r)'}">${(r.net > 0 ? '+' : '') + r.net.toFixed(3)}%</span><span class="sra"><button class="bar" onclick="event.stopPropagation();qArb(${i})">⚡ARB</button><button class="bwr" onclick="event.stopPropagation();watchRow(${i})">👁</button></span></div>`).join('');
+  4274→    }
+  4275→
+  4276→    function renderOB(mid, liq) {
+  4277→      const asks = [], bids = [];
+  4278→      const prec = mid > 1000 ? 1 : 4;
+  4279→      for (let i = 5; i > 0; i--) { asks.push(mid * (1 + i * .0003)); }
+  4280→      for (let i = 1; i <= 5; i++) { bids.push(mid * (1 - i * .0003)); }
+  4281→      document.getElementById('obAsks').innerHTML = asks.map(p => `<div class="oblv"><span class="obpa">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+  4282→      document.getElementById('obBids').innerHTML = bids.map(p => `<div class="oblv"><span class="obpb">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+  4283→      (function () { var __t = document.getElementById('obSpD'); if (__t) __t.textContent = '$' + (mid * .0006).toFixed(mid > 1000 ? 2 : 6); })();
+  4284→      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(liq); })();
+  4285→      (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '—'; })();
+  4286→    }
+  4287→
+  4288→    function renderPos() {
+  4289→      const tbody = document.getElementById('ptBody');
+  4290→      (function () { var __t = document.getElementById('psCt'); if (__t) __t.textContent = positions.length + ' ativas'; })();
+  4291→      (function () { var __t = document.getElementById('posCount'); if (__t) __t.textContent = positions.length; })();
+  4292→      if (!tbody) return;
+  4293→      if (!positions.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:8px;font-size:9px">Nenhuma posição aberta</td></tr>'; return }
+  4294→      tbody.innerHTML = positions.map((p, i) => {
+  4295→        const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4296→        const pp = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
+  4297→        return `<tr><td style="font-weight:700">${p.sym}</td><td><span class="at t${p.type.toLowerCase()}">${p.type}</span></td><td class="${p.side === 'LONG' ? 'sl' : 'ss'}">${p.side}</td><td>$${fmtP(p.entry, p.entry > 100 ? 2 : 4)}</td><td>$${fmtP(p.cur, p.cur > 100 ? 2 : 4)}</td><td>$${fmt(p.usdt)}</td><td>${p.token ? p.token.toFixed(6) + ' ' + p.sym.split('/')[0] : '—'}</td><td class="${pnl >= 0 ? 'pp' : 'pn'}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</td><td class="${pp >= 0 ? 'pp' : 'pn'}">${pp >= 0 ? '+' : ''}${pp.toFixed(2)}%</td><td>${p.bEx}</td><td>${p.sEx}</td><td><button class="bcr" onclick="closeP(${i})">✕ MKT</button><button class="bcrd" onclick="cancelP(${i})">✕ ORD</button></td></tr>`;
+  4298→      }).join('');
+  4299→    }
+  4300→
+  4301→    // ════════════════════════════════════════════════════════
+  4302→    // RESULTS
+  4303→    // ════════════════════════════════════════════════════════
+  4304→    function renderOrders() {
+  4305→      const status = document.getElementById('ordStatus').value;
+  4306→      const type = document.getElementById('ordType2').value;
+  4307→      const exch = document.getElementById('ordExch').value;
+  4308→      const sym = (document.getElementById('ordSym').value || '').toUpperCase();
+  4309→      let rows = tradeHistory.filter(t => {
+  4310→        if (status !== 'all' && t.status !== status) return false;
+  4311→        if (type !== 'all' && t.type !== type) return false;
+  4312→        if (exch !== 'all' && t.bEx !== exch && t.sEx !== exch) return false;
+  4313→        if (sym && !t.sym.includes(sym)) return false; return true;
+  4314→      }).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  4315→      (function () { var __t = document.getElementById('ordTotal'); if (__t) __t.textContent = rows.length; })();
+  4316→      (function () { var __t = document.getElementById('ordBadge'); if (__t) __t.textContent = tradeHistory.length; })();
+  4317→      document.getElementById('ordBody').innerHTML = rows.map(t => {
+  4318→        const pC = t.pnlPct >= 0 ? 'owin' : 'oloss', uC = t.pnlUsd >= 0 ? 'owin' : 'oloss';
+  4319→        const st = t.status === 'closed' ? '<span class="ostac">FECHADO</span>' : t.status === 'open' ? '<span class="ostao">ABERTO</span>' : '<span class="ostax">CANCELADO</span>';
+  4320→        return `<tr><td style="color:var(--dim)">#${t.id}</td><td style="color:var(--mid)">${fmtDate(t.ts)}</td><td style="font-weight:700">${t.sym}</td><td><span class="at t${t.type.toLowerCase()}">${t.type}</span></td><td>${t.bEx}</td><td>${t.sEx}</td><td class="osbuy">$${fmtP(t.buyP, t.buyP > 100 ? 2 : 4)}</td><td class="ossell">$${fmtP(t.sellP, t.sellP > 100 ? 2 : 4)}</td><td>$${fmt(t.usdt)}</td><td>${t.token ? t.token.toFixed(6) : '-'}</td><td style="color:var(--y)">${t.spread.toFixed(3)}%</td><td style="color:var(--r)">-${t.fees.toFixed(3)}%</td><td class="${pC}">${t.status === 'cancelled' ? '—' : (t.pnlPct >= 0 ? '+' : '') + t.pnlPct.toFixed(3) + '%'}</td><td class="${uC}">${t.status === 'cancelled' ? '—' : (t.pnlUsd >= 0 ? '+$' : '-$') + Math.abs(t.pnlUsd).toFixed(2)}</td><td>${st}</td></tr>`;
+  4321→      }).join('');
+  4322→    }
+  4323→
+  4324→    function renderDaily() {
+  4325→      const byDay = {};
+  4326→      tradeHistory.forEach(t => {
+  4327→        const d = new Date(t.ts).toLocaleDateString('pt-BR');
+  4328→        if (!byDay[d]) byDay[d] = { date: d, trades: 0, wins: 0, losses: 0, pnlUsd: 0, pnlPct: 0, fees: 0, vol: 0 };
+  4329→        const day = byDay[d]; day.trades++;
+  4330→        if (t.status === 'closed') { if (t.pnlUsd >= 0) day.wins++; else day.losses++; day.pnlUsd += t.pnlUsd; day.pnlPct += t.pnlPct; day.fees += t.fees / 100 * (t.usdt || 0) }
+  4331→        day.vol += (t.usdt || 0);
+  4332→      });
+  4333→      const days = Object.values(byDay).reverse();
+  4334→      if (!days.length) { document.getElementById('dailyGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--dim);padding:24px">Nenhum trade ainda.</div>'; return }
+  4335→      document.getElementById('dailyGrid').innerHTML = days.map(d => {
+  4336→        const isG = d.pnlUsd >= 0, wr = d.trades ? ((d.wins / d.trades) * 100).toFixed(0) : 0, ww = d.trades ? Math.round(d.wins / d.trades * 100) : 0;
+  4337→        return `<div class="daycard"><div class="daychd"><span class="daydate">${d.date}</span><span class="${isG ? 'daypg' : 'daypg daypr'}">${isG ? '+' : ''}$${d.pnlUsd.toFixed(2)}</span></div><div class="daycb"><div class="dayrow"><span class="dayk">PnL %</span><span class="dayv ${isG ? 'pp' : 'pn'}">${isG ? '+' : ''}${d.pnlPct.toFixed(3)}%</span></div><div class="dayrow"><span class="dayk">Trades</span><span class="dayv">${d.trades}</span></div><div class="dayrow"><span class="dayk">Win Rate</span><span class="dayv" style="color:var(--c)">${wr}%</span></div><div class="dayrow"><span class="dayk">W/L</span><span class="dayv">${d.wins}✓/${d.losses}✗</span></div><div class="dayrow"><span class="dayk">Volume</span><span class="dayv">$${fmt(d.vol)}</span></div><div class="dayrow"><span class="dayk">Taxas</span><span class="dayv" style="color:var(--r)">-$${d.fees.toFixed(2)}</span></div><div class="daybw"><div class="daybg" style="width:${ww}%"></div><div class="daybr" style="width:${100 - ww}%"></div></div></div></div>`;
+  4338→      }).join('');
+  4339→    }
+  4340→
+  4341→    function renderOverview() {
+  4342→      const closed = tradeHistory.filter(t => t.status === 'closed');
+  4343→      const wins = closed.filter(t => t.pnlUsd >= 0);
+  4344→      const totalPnl = closed.reduce((s, t) => s + t.pnlUsd, 0);
+  4345→      const totalVol = tradeHistory.reduce((s, t) => s + (t.usdt || 0), 0);
+  4346→      const totalFees = closed.reduce((s, t) => s + t.fees / 100 * (t.usdt || 0), 0);
+  4347→      const wr = closed.length ? ((wins.length / closed.length) * 100).toFixed(1) : 0;
+  4348→      document.getElementById('resBanner') && (document.getElementById('resBanner').innerHTML = `<div class="rbcard"><div class="rblabel">PnL Total</div><div class="rbval ${totalPnl >= 0 ? 'rbg' : 'rbr'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div><div class="rbsub">${closed.length} fechados</div></div><div class="rbcard"><div class="rblabel">Win Rate</div><div class="rbval rbc">${wr}%</div><div class="rbsub">${wins.length}W / ${closed.length - wins.length}L</div></div><div class="rbcard"><div class="rblabel">Volume</div><div class="rbval rby">$${fmt(totalVol)}</div><div class="rbsub">${tradeHistory.length} ordens</div></div><div class="rbcard"><div class="rblabel">Taxas Pagas</div><div class="rbval rbr">-$${totalFees.toFixed(2)}</div><div class="rbsub">estimado</div></div><div class="rbcard"><div class="rblabel">Posições</div><div class="rbval rbp">${positions.length}</div><div class="rbsub">abertas</div></div>`);
+  4349→      (function () { var __t = document.getElementById('totalPnl'); if (__t) __t.textContent = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2); })();
+  4350→      (function () { var __t = document.getElementById('winRate'); if (__t) __t.textContent = closed.length ? wr + '%' : '—'; })();
+  4351→    }
+  4352→
+  4353→    function exportOrders() {
+  4354→      if (!tradeHistory.length) { notify('Nenhum trade para exportar', 'w'); return }
+  4355→      const hdr = 'ID,Data,Par,Tipo,BuyExch,SellExch,BuyP,SellP,USDT,Token,Spread%,Taxas%,PnL%,PnL$,Status\n';
+  4356→      const rows = tradeHistory.map(t => [t.id, fmtDate(t.ts), t.sym, t.type, t.bEx, t.sEx, t.buyP, t.sellP, t.usdt || 0, t.token || 0, t.spread, t.fees, t.pnlPct || 0, t.pnlUsd || 0, t.status].join(',')).join('\n');
+  4357→      const blob = new Blob([hdr + rows], { type: 'text/csv' });
+  4358→      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'arb-trades-' + Date.now() + '.csv'; a.click();
+  4359→      notify('⬇ CSV exportado', 'c');
+  4360→    }
+  4361→
+  4362→    // ════════════════════════════════════════════════════════
+  4363→    // ARB EXECUTION
+  4364→    // ════════════════════════════════════════════════════════
+  4365→    function doArb() {
+  4366→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4367→      const usdt = getOrderUSDT(); if (usdt <= 0) { notify('⚠ Defina a quantidade', 'w'); return }
+  4368→      const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
+  4369→      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
+  4370→      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+  4371→      const mode = document.getElementById('arbMode').value;
+  4372→      const token = getOrderToken();
+  4373→      if (document.getElementById('tog-confirm')?.checked) {
+  4374→        (function () { var __t = document.getElementById('mPair'); if (__t) __t.textContent = r.sym; })();
+  4375→        (function () { var __t = document.getElementById('mMode'); if (__t) __t.textContent = mode + ' (' + bex + '→' + sex + ')'; })();
+  4376→        (function () { var __t = document.getElementById('mBuy'); if (__t) __t.textContent = bex + ' @ $' + fmtP(buyP, buyP > 100 ? 2 : 4); })();
+  4377→        (function () { var __t = document.getElementById('mSell'); if (__t) __t.textContent = sex + ' @ $' + fmtP(sellP, sellP > 100 ? 2 : 4); })();
+  4378→        (function () { var __t = document.getElementById('mQtyU'); if (__t) __t.textContent = '$' + fmt(usdt); })();
+  4379→        (function () { var __t = document.getElementById('mQty'); if (__t) __t.textContent = token.toFixed(6) + ' ' + r.sym.split('/')[0]; })();
+  4380→        (function () { var __t = document.getElementById('mSp'); if (__t) __t.textContent = '+' + r.spread.toFixed(3) + '%'; })();
+  4381→        (function () { var __t = document.getElementById('mNet'); if (__t) __t.textContent = (r.net > 0 ? '+' : '') + '$' + (r.net / 100 * usdt).toFixed(2); })();
+  4382→        document.getElementById('modal').classList.add('open');
+  4383→      } else { confirmArb() }
+  4384→    }
+  4385→
+  4386→    async function confirmArb() {
+  4387→      closeM();
+  4388→      const r = filteredRows[selIdx]; if (!r) return;
+  4389→      const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
+  4390→      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
+  4391→      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+  4392→      const usdt = getOrderUSDT(), token = getOrderToken();
+  4393→      const mode = document.getElementById('arbMode').value;
+  4394→      const isSpotBuy = mode === 'SS' || mode === 'SF';
+  4395→      const isSpotSell = mode === 'SS' || mode === 'FS';
+  4396→      const hasBuyKey = !!lsGet('keys_' + bex.toLowerCase());
+  4397→      const hasSellKey = !!lsGet('keys_' + sex.toLowerCase());
+  4398→      if (!hasBuyKey || !hasSellKey) {
+  4399→        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), ' w');
+  4400→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled'); return;
+  4401→      }
+  4402→      notify('⚡ Enviando ARB ' + r.sym + '...', '');
+  4403→      try {
+  4404→        const [buyRes, sellRes] = await Promise.all([
+  4405→          placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy),
+  4406→          placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell)
+  4407→        ]);
+  4408→        notify('✓ ARB executado! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
+  4409→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
+  4410→      } catch (err) {
+  4411→        notify('✗ Falha: ' + errMsg(err), 'e');
+  4412→        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+  4413→      }
+  4414→    }
+  4415→
+  4416→    function registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, status, bOid, sOid) {
+  4417→      const trade = { id: tradeId++, ts: new Date().toISOString(), sym: r.sym, type: mode, bEx: bex, sEx: sex, buyP, sellP, usdt, token, spread: r.spread, fees: (FEE[bex] + FEE[sex]), pnlPct: 0, pnlUsd: 0, status, bOid: bOid || null, sOid: sOid || null };
+  4418→      tradeHistory.unshift(trade);
+  4419→      if (status === 'open') { positions.push({ sym: r.sym, side: 'LONG', type: mode, entry: buyP, cur: buyP, usdt, token, bEx: bex, sEx: sex, bOid: bOid || null, sOid: sOid || null }) }
+  4420→      lsSet('trades', tradeHistory.slice(-500)); lsSet('positions', positions);
+  4421→      renderPos(); renderOverview();
+  4422→      (function () { var __t = document.getElementById('ordBadge'); if (__t) __t.textContent = tradeHistory.length; })();
+  4423→    }
+  4424→
+  4425→    function placeLeg(side) {
+  4426→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4427→      const exch = side === 'buy' ? getBuyExch() : getSellExch();
+  4428→      const price = parseFloat(document.getElementById(side === 'buy' ? 'lBuy' : 'lSell').value) || r[side === 'buy' ? 'buyAt' : 'sellAt'];
+  4429→      const token = getOrderToken();
+  4430→      const mode = document.getElementById('arbMode').value;
+  4431→      const isSpot = (side === 'buy' && (mode === 'SS' || mode === 'SF')) || (side === 'sell' && (mode === 'SS' || mode === 'FS'));
+  4432→      if (!lsGet('keys_' + exch.toLowerCase())) { notify('⚠ Configure a key do ' + exch, 'w'); return }
+  4433→      notify((side === 'buy' ? '▲' : '▼') + ' LIMIT ' + side.toUpperCase() + ' ' + r.sym + ' @ $' + price + ' em ' + exch + '...', '');
+  4434→      placeRealOrder(exch, r.sym, side, token, price, isSpot)
+  4435→        .then(res => notify('✓ ' + side.toUpperCase() + ' #' + res.orderId + ' enviado', 'g'))
+  4436→        .catch(err => notify('✗ ' + side.toUpperCase() + ' falhou: ' + errMsg(err), 'e'));
+  4437→    }
+  4438→
+  4439→    function closeM() { document.getElementById('modal').classList.remove('open') }
+  4440→    function qArb(i) { sel(i); doArb() }
+  4441→    function watchRow(i) { notify('👁 ' + filteredRows[i]?.sym + ' monitorado', '') }
+  4442→
+  4443→    // ════════════════════════════════════════════════════════
+  4444→    // POSITIONS
+  4445→    // ════════════════════════════════════════════════════════
+  4446→    function closeP(i) {
+  4447→      const p = positions[i]; if (!p) return;
+  4448→      const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4449→      const pnlPct = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * 100 : (p.entry - p.cur) / p.entry * 100;
+  4450→      const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
+  4451→      if (t) { t.status = 'closed'; t.pnlUsd = pnl; t.pnlPct = pnlPct; lsSet('trades', tradeHistory.slice(-500)) }
+  4452→      positions.splice(i, 1); lsSet('positions', positions);
+  4453→      notify('✕ ' + p.sym + ' fechado | PnL: ' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2), 'w');
+  4454→      renderPos(); renderOverview();
+  4455→    }
+  4456→    function cancelP(i) {
+  4457→      const p = positions[i]; if (!p) return;
+  4458→      const t = tradeHistory.find(tr => tr.bOid === p.bOid && tr.status === 'open');
+  4459→      if (t) { t.status = 'cancelled'; lsSet('trades', tradeHistory.slice(-500)) }
+  4460→      positions.splice(i, 1); lsSet('positions', positions);
+  4461→      notify('✕ Ordens ' + p.sym + ' canceladas', 'w'); renderPos(); renderOverview();
+  4462→    }
+  4463→    function cancelAll() { const len = positions.length; for (let i = 0; i < len; i++)cancelP(0); notify('✕ Todas as ordens canceladas', 'w') }
+  4464→
+  4465→    function setPct(v, el) { pctVal = v; document.querySelectorAll('.qpct').forEach(b => b.classList.remove('on')); if (el) el.classList.add('on') }
+  4466→    function qClose(side) {
+  4467→      const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
+  4468→      const usdt = getOrderUSDT() || 100, cq = (usdt * pctVal / 100).toFixed(2);
+  4469→      if (side === 'buy' || side === 'both') notify('✕ FECHAR BUY ' + r.sym + ' ' + pctVal + '% ($' + cq + ') MARKET @ ' + getBuyExch(), 'w');
+  4470→      if (side === 'sell' || side === 'both') notify('✕ FECHAR SELL ' + r.sym + ' ' + pctVal + '% ($' + cq + ') MARKET @ ' + getSellExch(), 'w');
+  4471→    }
+  4472→
+  4473→    function openExit() {
+  4474→      if (!positions.length) { notify('Nenhuma posição aberta', 'w'); return }
+  4475→      const bd = document.getElementById('exBd');
+  4476→      bd.innerHTML = positions.map((p, i) => {
+  4477→        const pnl = p.side === 'LONG' ? (p.cur - p.entry) / p.entry * (p.usdt || 0) : (p.entry - p.cur) / p.entry * (p.usdt || 0);
+  4478→        return `<div class="exitem"><div class="exinfo"><span class="exsym">${p.sym}</span><span class="exdet">${p.type} | ${p.bEx}→${p.sEx} | $${fmt(p.usdt)}</span></div><span class="${pnl >= 0 ? 'pp' : 'pn'}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span><div class="exacts"><button class="exprt" onclick="closeP(${i});reRenderExit()">MKT</button><button class="excl" onclick="cancelP(${i});reRenderExit()">CANCEL</button></div></div>`;
+  4479→      }).join('') + `<div class="exfull"><button class="efall" onclick="closeAll()">🔴 FECHAR TUDO</button><button class="efcn" onclick="closeExit()">Cancelar</button></div>`;
+  4480→      document.getElementById('exitModal').classList.add('open');
+  4481→    }
+  4482→    function reRenderExit() { if (positions.length) openExit(); else closeExit() }
+  4483→    function closeAll() { closeExit(); const len = positions.length; for (let i = 0; i < len; i++)closeP(0); notify('🔴 TUDO FECHADO', 'e') }
+  4484→    function closeExit() { document.getElementById('exitModal').classList.remove('open') }
+  4485→
+  4486→    // ════════════════════════════════════════════════════════
+  4487→    // BOT + LIVE TICK
+  4488→    // ════════════════════════════════════════════════════════
+  4489→    function startBot() { botRunning = true; notify('▶ Bot ATIVO', 'g'); if (!liveInterval) liveInterval = setInterval(live, 1600) }
+  4490→    function stopBot() { botRunning = false; notify('⏹ Bot PAUSADO', 'w'); if (liveInterval) { clearInterval(liveInterval); liveInterval = null } }
+  4491→    function onExchChange() { updateBalPanel() }
+  4492→    function sortSp() { filteredRows.sort((a, b) => b.spread - a.spread); renderScanner(); renderAsset() }
+  4493→    function refresh() { genRows(); applyF(); notify('↺ Scanner atualizado', '') }
+  4494→
+  4495→    async function live() {
+  4496→      const _t0 = Date.now();
+  4497→      await refreshQuotes();
+  4498→      genRows();
+  4499→      applyF();
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>

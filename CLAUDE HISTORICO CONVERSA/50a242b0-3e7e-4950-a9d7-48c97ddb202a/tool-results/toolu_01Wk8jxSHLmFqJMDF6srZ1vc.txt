@@ -1,0 +1,1004 @@
+  3000→        <div class="toggle-wrap">
+  3001→          <div>
+  3002→            <div class="toggle-label">Auto-Executar</div>
+  3003→            <div class="toggle-sub">Executa automaticamente ao detectar oportunidade</div>
+  3004→          </div><label class="tgl"><input type="checkbox" id="tog-ff">
+  3005→            <div class="tgl-sl"></div>
+  3006→          </label>
+  3007→        </div>
+  3008→        <div class="toggle-wrap">
+  3009→          <div>
+  3010→            <div class="toggle-label">Confirmar antes de executar</div>
+  3011→            <div class="toggle-sub">Exibe modal de confirmação antes de enviar</div>
+  3012→          </div><label class="tgl"><input type="checkbox" id="tog-confirm" checked>
+  3013→            <div class="tgl-sl"></div>
+  3014→          </label>
+  3015→        </div>
+  3016→        <div class="toggle-wrap">
+  3017→          <div>
+  3018→            <div class="toggle-label">Monitorar Funding Rate</div>
+  3019→            <div class="toggle-sub">Incluir funding rate no cálculo de lucro líquido</div>
+  3020→          </div><label class="tgl"><input type="checkbox" id="tog-auto" checked>
+  3021→            <div class="tgl-sl"></div>
+  3022→          </label>
+  3023→        </div>
+  3024→        <div class="toggle-wrap">
+  3025→          <div>
+  3026→            <div class="toggle-label">Fechar pos. no funding</div>
+  3027→            <div class="toggle-sub">Auto-fechar posições antes do pagamento</div>
+  3028→          </div><label class="tgl"><input type="checkbox" checked>
+  3029→            <div class="tgl-sl"></div>
+  3030→          </label>
+  3031→        </div>
+  3032→        <div class="toggle-wrap">
+  3033→          <div>
+  3034→            <div class="toggle-label">Notificações sonoras</div>
+  3035→            <div class="toggle-sub">Emitir som ao detectar oportunidade</div>
+  3036→          </div><label class="tgl"><input type="checkbox">
+  3037→            <div class="tgl-sl"></div>
+  3038→          </label>
+  3039→        </div>
+  3040→      </div>
+  3041→    </div>
+  3042→
+  3043→    <div class="api-section">
+  3044→      <div class="api-section-title">🔑 Chaves de API por Corretora</div>
+  3045→      <div class="api-grid">
+  3046→
+  3047→        <!-- BingX -->
+  3048→        <div class="api-card">
+  3049→          <div class="api-card-hd">
+  3050→            <span class="api-card-name" style="color:#f0b90b">⬡ BingX</span>
+  3051→            <div class="api-card-status">
+  3052→              <div class="api-status-dot off" id="bingx-dot"></div><span id="bingx-status"
+  3053→                style="color:var(--dim)">Sem key</span>
+  3054→            </div>
+  3055→          </div>
+  3056→          <div class="api-card-body">
+  3057→            <form class="api-form" onsubmit="return false">
+  3058→            <div class="api-field">
+  3059→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3060→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-key"
+  3061→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3062→                  onclick="toggleEye('bingx-key',this)">👁</button></div>
+  3063→            </div>
+  3064→            <div class="api-field">
+  3065→              <div class="api-field-label">Secret Key</div>
+  3066→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-secret"
+  3067→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3068→                  onclick="toggleEye('bingx-secret',this)">👁</button></div>
+  3069→            </div>
+  3070→            <div class="api-perms">
+  3071→              <span class="api-perm ok">✓ SPOT</span>
+  3072→              <span class="api-perm ok">✓ FUTURES</span>
+  3073→              <span class="api-perm ok">✓ TRADE</span>
+  3074→              <span class="api-perm no">✗ WITHDRAW</span>
+  3075→            </div>
+  3076→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3077→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
+  3078→                  id="bingx-bal-s">$2,341.50</span></div>
+  3079→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3080→                  class="api-bal-val" id="bingx-bal-f">$1,850.00</span></div>
+  3081→            </div>
+  3082→            </form>
+  3083→          </div>
+  3084→          <div class="api-card-footer">
+  3085→            <button class="api-test-btn" onclick="testApi('bingx')">🔌 Testar Conexão</button>
+  3086→            <button class="api-save-btn" onclick="saveApi('bingx')">💾 Salvar</button>
+  3087→          </div>
+  3088→        </div>
+  3089→
+  3090→        <!-- MEXC -->
+  3091→        <div class="api-card">
+  3092→          <div class="api-card-hd">
+  3093→            <span class="api-card-name" style="color:#00d4aa">◈ MEXC</span>
+  3094→            <div class="api-card-status">
+  3095→              <div class="api-status-dot off" id="mexc-dot"></div><span id="mexc-status"
+  3096→                style="color:var(--dim)">Sem key</span>
+  3097→            </div>
+  3098→          </div>
+  3099→          <div class="api-card-body">
+  3100→            <form class="api-form" onsubmit="return false">
+  3101→            <div class="api-field">
+  3102→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3103→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-key"
+  3104→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3105→                  onclick="toggleEye('mexc-key',this)">👁</button></div>
+  3106→            </div>
+  3107→            <div class="api-field">
+  3108→              <div class="api-field-label">Secret Key</div>
+  3109→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-secret"
+  3110→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3111→                  onclick="toggleEye('mexc-secret',this)">👁</button></div>
+  3112→            </div>
+  3113→            <div class="api-perms">
+  3114→              <span class="api-perm ok">✓ SPOT</span>
+  3115→              <span class="api-perm ok">✓ FUTURES</span>
+  3116→              <span class="api-perm ok">✓ TRADE</span>
+  3117→              <span class="api-perm no">✗ WITHDRAW</span>
+  3118→            </div>
+  3119→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3120→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span
+  3121→                  class="api-bal-val apibv" id="mexc-bal-s">—</span></div>
+  3122→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3123→                  class="api-bal-val apibv" id="mexc-bal-f">—</span></div>
+  3124→            </div>
+  3125→            </form>
+  3126→          </div>
+  3127→          <div class="api-card-footer">
+  3128→            <button class="api-test-btn" onclick="testApi('mexc')">🔌 Testar Conexão</button>
+  3129→            <button class="api-save-btn" onclick="saveApi('mexc')">💾 Salvar</button>
+  3130→          </div>
+  3131→        </div>
+  3132→
+  3133→        <!-- Gate.io -->
+  3134→        <div class="api-card">
+  3135→          <div class="api-card-hd">
+  3136→            <span class="api-card-name" style="color:#e6007a">◆ Gate.io</span>
+  3137→            <div class="api-card-status">
+  3138→              <div class="api-status-dot off" id="gate-dot"></div><span id="gate-status"
+  3139→                style="color:var(--dim)">Sem key</span>
+  3140→            </div>
+  3141→          </div>
+  3142→          <div class="api-card-body">
+  3143→            <form class="api-form" onsubmit="return false">
+  3144→            <div class="api-field">
+  3145→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3146→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-key"
+  3147→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3148→                  onclick="toggleEye('gate-key',this)">👁</button></div>
+  3149→            </div>
+  3150→            <div class="api-field">
+  3151→              <div class="api-field-label">Secret Key</div>
+  3152→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-secret"
+  3153→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3154→                  onclick="toggleEye('gate-secret',this)">👁</button></div>
+  3155→            </div>
+  3156→            <div class="api-perms">
+  3157→              <span class="api-perm ok">✓ SPOT</span>
+  3158→              <span class="api-perm ok">✓ FUTURES</span>
+  3159→              <span class="api-perm ok">✓ TRADE</span>
+  3160→              <span class="api-perm no">✗ WITHDRAW</span>
+  3161→            </div>
+  3162→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3163→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
+  3164→                  id="gate-bal-s">$890.75</span></div>
+  3165→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3166→                  class="api-bal-val" id="gate-bal-f">$2,450.00</span></div>
+  3167→            </div>
+  3168→            </form>
+  3169→          </div>
+  3170→          <div class="api-card-footer">
+  3171→            <button class="api-test-btn" onclick="testApi('gate')">🔌 Testar Conexão</button>
+  3172→            <button class="api-save-btn" onclick="saveApi('gate')">💾 Salvar</button>
+  3173→          </div>
+  3174→        </div>
+  3175→
+  3176→        <!-- LBank -->
+  3177→        <div class="api-card">
+  3178→          <div class="api-card-hd">
+  3179→            <span class="api-card-name" style="color:#1a73e8">◈ LBank</span>
+  3180→            <div class="api-card-status">
+  3181→              <div class="api-status-dot off" id="lbank-dot"></div><span id="lbank-status" style="color:var(--dim)">Sem key</span>
+  3182→            </div>
+  3183→          </div>
+  3184→          <div class="api-card-body">
+  3185→            <form class="api-form" onsubmit="return false">
+  3186→            <div class="api-field">
+  3187→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3188→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-key',this)">👁</button></div>
+  3189→            </div>
+  3190→            <div class="api-field">
+  3191→              <div class="api-field-label">Secret Key</div>
+  3192→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-secret',this)">👁</button></div>
+  3193→            </div>
+  3194→            <div class="api-perms">
+  3195→              <span class="api-perm ok">✓ SPOT</span>
+  3196→              <span class="api-perm ok">✓ TRADE</span>
+  3197→              <span class="api-perm no">✗ WITHDRAW</span>
+  3198→            </div>
+  3199→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3200→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="lbank-bal-s">—</span></div>
+  3201→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="lbank-bal-f">—</span></div>
+  3202→            </div>
+  3203→            </form>
+  3204→          </div>
+  3205→          <div class="api-card-footer">
+  3206→            <button class="api-test-btn" onclick="testApi('lbank')">🔌 Testar Conexão</button>
+  3207→            <button class="api-save-btn" onclick="saveApi('lbank')">💾 Salvar</button>
+  3208→          </div>
+  3209→        </div>
+  3210→
+  3211→        <!-- Bitget -->
+  3212→        <div class="api-card">
+  3213→          <div class="api-card-hd">
+  3214→            <span class="api-card-name" style="color:#00c8ff">◆ Bitget</span>
+  3215→            <div class="api-card-status">
+  3216→              <div class="api-status-dot off" id="bitget-dot"></div><span id="bitget-status" style="color:var(--dim)">Sem key</span>
+  3217→            </div>
+  3218→          </div>
+  3219→          <div class="api-card-body">
+  3220→            <form class="api-form" onsubmit="return false">
+  3221→            <div class="api-field">
+  3222→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3223→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-key',this)">👁</button></div>
+  3224→            </div>
+  3225→            <div class="api-field">
+  3226→              <div class="api-field-label">Secret Key</div>
+  3227→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-secret',this)">👁</button></div>
+  3228→            </div>
+  3229→            <div class="api-field">
+  3230→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3231→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-pp" placeholder="Passphrase Bitget..."><button class="api-eye" onclick="toggleEye('bitget-pp',this)">👁</button></div>
+  3232→            </div>
+  3233→            <div class="api-perms">
+  3234→              <span class="api-perm ok">✓ SPOT</span>
+  3235→              <span class="api-perm ok">✓ FUTURES</span>
+  3236→              <span class="api-perm ok">✓ TRADE</span>
+  3237→              <span class="api-perm no">✗ WITHDRAW</span>
+  3238→            </div>
+  3239→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3240→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bitget-bal-s">—</span></div>
+  3241→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bitget-bal-f">—</span></div>
+  3242→            </div>
+  3243→            </form>
+  3244→          </div>
+  3245→          <div class="api-card-footer">
+  3246→            <button class="api-test-btn" onclick="testApi('bitget')">🔌 Testar Conexão</button>
+  3247→            <button class="api-save-btn" onclick="saveApi('bitget')">💾 Salvar</button>
+  3248→          </div>
+  3249→        </div>
+  3250→
+  3251→        <!-- KuCoin -->
+  3252→        <div class="api-card">
+  3253→          <div class="api-card-hd">
+  3254→            <span class="api-card-name" style="color:#00ab6c">✦ KuCoin</span>
+  3255→            <div class="api-card-status">
+  3256→              <div class="api-status-dot off" id="kucoin-dot"></div><span id="kucoin-status"
+  3257→                style="color:var(--dim)">Sem key</span>
+  3258→            </div>
+  3259→          </div>
+  3260→          <div class="api-card-body">
+  3261→            <form class="api-form" onsubmit="return false">
+  3262→            <div class="api-field">
+  3263→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3264→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-key"
+  3265→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3266→                  onclick="toggleEye('kucoin-key',this)">👁</button></div>
+  3267→            </div>
+  3268→            <div class="api-field">
+  3269→              <div class="api-field-label">Secret Key</div>
+  3270→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-secret"
+  3271→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3272→                  onclick="toggleEye('kucoin-secret',this)">👁</button></div>
+  3273→            </div>
+  3274→            <div class="api-field">
+  3275→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3276→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-pp"
+  3277→                  placeholder="Passphrase KuCoin..."><button class="api-eye"
+  3278→                  onclick="toggleEye('kucoin-pp',this)">👁</button></div>
+  3279→            </div>
+  3280→            <div class="api-perms">
+  3281→              <span class="api-perm ok">✓ SPOT</span>
+  3282→              <span class="api-perm ok">✓ FUTURES</span>
+  3283→              <span class="api-perm no">✗ TRADE — key inválida</span>
+  3284→            </div>
+  3285→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3286→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT</span><span class="api-bal-val"
+  3287→                  style="color:var(--red)">—</span></div>
+  3288→            </div>
+  3289→            </form>
+  3290→          </div>
+  3291→          <div class="api-card-footer">
+  3292→            <button class="api-test-btn" onclick="testApi('kucoin')">🔌 Testar Conexão</button>
+  3293→            <button class="api-save-btn" onclick="saveApi('kucoin')">💾 Salvar</button>
+  3294→          </div>
+  3295→          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3296→            <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span
+  3297→                class="api-bal-val apibv" id="kucoin-bal-s">—</span></div>
+  3298→            <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3299→                class="api-bal-val apibv" id="kucoin-bal-f">—</span></div>
+  3300→            <div class="api-balance-row"><span class="api-bal-key">Atualizado</span><span class="api-bal-val"
+  3301→                id="kucoin-bal-ts" style="color:var(--dim)">—</span></div>
+  3302→          </div>
+  3303→        </div>
+  3304→
+  3305→        <!-- Bybit -->
+  3306→        <div class="api-card">
+  3307→          <div class="api-card-hd">
+  3308→            <span class="api-card-name" style="color:#f7a600">⬡ Bybit</span>
+  3309→            <div class="api-card-status">
+  3310→              <div class="api-status-dot off" id="bybit-dot"></div><span id="bybit-status" style="color:var(--dim)">Sem key</span>
+  3311→            </div>
+  3312→          </div>
+  3313→          <div class="api-card-body">
+  3314→            <form class="api-form" onsubmit="return false">
+  3315→            <div class="api-field">
+  3316→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3317→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-key',this)">👁</button></div>
+  3318→            </div>
+  3319→            <div class="api-field">
+  3320→              <div class="api-field-label">Secret Key</div>
+  3321→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-secret',this)">👁</button></div>
+  3322→            </div>
+  3323→            <div class="api-perms">
+  3324→              <span class="api-perm ok">✓ SPOT</span>
+  3325→              <span class="api-perm ok">✓ TRADE</span>
+  3326→              <span class="api-perm no">✗ WITHDRAW</span>
+  3327→            </div>
+  3328→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3329→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bybit-bal-s">—</span></div>
+  3330→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bybit-bal-f">—</span></div>
+  3331→            </div>
+  3332→            </form>
+  3333→          </div>
+  3334→          <div class="api-card-footer">
+  3335→            <button class="api-test-btn" onclick="testApi('bybit')">🔌 Testar Conexão</button>
+  3336→            <button class="api-save-btn" onclick="saveApi('bybit')">💾 Salvar</button>
+  3337→          </div>
+  3338→        </div>
+  3339→
+  3340→        <!-- OKX -->
+  3341→        <div class="api-card">
+  3342→          <div class="api-card-hd">
+  3343→            <span class="api-card-name" style="color:#3c6bfe">◆ OKX</span>
+  3344→            <div class="api-card-status">
+  3345→              <div class="api-status-dot off" id="okx-dot"></div><span id="okx-status" style="color:var(--dim)">Sem key</span>
+  3346→            </div>
+  3347→          </div>
+  3348→          <div class="api-card-body">
+  3349→            <form class="api-form" onsubmit="return false">
+  3350→            <div class="api-field">
+  3351→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3352→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('okx-key',this)">👁</button></div>
+  3353→            </div>
+  3354→            <div class="api-field">
+  3355→              <div class="api-field-label">Secret Key</div>
+  3356→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('okx-secret',this)">👁</button></div>
+  3357→            </div>
+  3358→            <div class="api-field">
+  3359→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3360→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-pp" placeholder="Passphrase OKX..."><button class="api-eye" onclick="toggleEye('okx-pp',this)">👁</button></div>
+  3361→            </div>
+  3362→            <div class="api-perms">
+  3363→              <span class="api-perm ok">✓ SPOT</span>
+  3364→              <span class="api-perm ok">✓ FUTURES</span>
+  3365→              <span class="api-perm ok">✓ TRADE</span>
+  3366→              <span class="api-perm no">✗ WITHDRAW</span>
+  3367→            </div>
+  3368→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3369→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="okx-bal-s">—</span></div>
+  3370→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="okx-bal-f">—</span></div>
+  3371→            </div>
+  3372→            </form>
+  3373→          </div>
+  3374→          <div class="api-card-footer">
+  3375→            <button class="api-test-btn" onclick="testApi('okx')">🔌 Testar Conexão</button>
+  3376→            <button class="api-save-btn" onclick="saveApi('okx')">💾 Salvar</button>
+  3377→          </div>
+  3378→        </div>
+  3379→
+  3380→      </div>
+  3381→    </div>
+  3382→
+  3383→    <div class="api-section">
+  3384→      <div class="api-section-title" style="color:var(--red)">🛡️ Avisos de Segurança</div>
+  3385→      <div
+  3386→        style="background:var(--rd1);border:1px solid var(--red);border-radius:8px;padding:12px;font-size:9px;color:var(--tmid);line-height:1.8">
+  3387→        <div>⛔ <b style="color:var(--red)">NUNCA</b> habilite a permissão de SAQUE (WITHDRAW) nas suas API Keys.</div>
+  3388→        <div>🔒 As chaves são salvas localmente — <b>nunca são enviadas para servidores externos</b>.</div>
+  3389→        <div>🌐 Configure whitelist de IP nas corretoras para maior segurança.</div>
+  3390→        <div>🔑 Use API Keys exclusivas para este bot — não compartilhe com outras aplicações.</div>
+  3391→        <div>⏱️ As keys expiram após 90 dias em algumas corretoras — verifique periodicamente.</div>
+  3392→      </div>
+  3393→    </div>
+  3394→  </div>
+  3395→
+  3396→  <!-- EXEC MODAL -->
+  3397→  <div id="modal">
+  3398→    <div class="m-box" style="width:360px">
+  3399→      <div class="m-hd"><span class="m-title">⚡ Confirmar ARB Simultâneo</span><button class="m-x"
+  3400→          onclick="closeM()">✕</button></div>
+  3401→      <div class="m-bd">
+  3402→        <div class="c-box">
+  3403→          <div class="cr2"><span class="ck2">Par</span><span class="cv2" id="mPair" style="color:var(--green)"></span>
+  3404→          </div>
+  3405→          <div class="cr2"><span class="ck2">LIMIT BUY</span><span class="cv2" id="mBuy"></span></div>
+  3406→          <div class="cr2"><span class="ck2">LIMIT SELL</span><span class="cv2" id="mSell"></span></div>
+  3407→          <div class="cr2"><span class="ck2">Quantidade</span><span class="cv2" id="mQty" style="display:none"></span>
+  3408→          </div>
+  3409→          <div class="cr2"><span class="ck2">Spread</span><span class="cv2" id="mSp" style="color:var(--yellow)"></span>
+  3410→          </div>
+  3411→          <div class="cr2"><span class="ck2">Lucro Est.</span><span class="cv2" id="mNet"
+  3412→              style="color:var(--green)"></span></div>
+  3413→        </div>
+  3414→        <div class="m-btns">
+  3415→          <button class="m-cn" onclick="closeM()">Cancelar</button>
+  3416→          <button class="b-arb" onclick="confirmArb()" style="margin-top:0">✓ CONFIRMAR</button>
+  3417→        </div>
+  3418→      </div>
+  3419→    </div>
+  3420→  </div>
+  3421→
+  3422→  <!-- EXIT MODAL -->
+  3423→  <div id="exitModal">
+  3424→    <div class="ex-box">
+  3425→      <div class="ex-hd"><span class="ex-t">🔴 SAÍDA RÁPIDA DE POSIÇÕES</span><button class="m-x"
+  3426→          style="color:var(--red)" onclick="closeExit()">✕</button></div>
+  3427→      <div class="ex-bd" id="exBd"></div>
+  3428→    </div>
+  3429→  </div>
+  3430→
+  3431→  <div id="notif"></div>
+  3432→
+  3433→  <script>
+  3434→
+  3435→
+  3436→
+  3437→
+  3438→
+  3439→
+  3440→    window.onerror = function (msg, src, line, col, err) {
+  3441→      document.body.insertAdjacentHTML('afterbegin',
+  3442→        '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:12px;z-index:99999;font-size:13px;font-family:monospace">' +
+  3443→        '❌ ERRO JS linha ' + line + ': ' + msg + '</div>'
+  3444→      );
+  3445→      console.error('ERRO:', msg, 'linha:', line);
+  3446→      return false;
+  3447→    };
+  3448→
+  3449→    // ════════════════════════════════════════════════════════
+  3450→    // CONSTANTS
+  3451→    // ════════════════════════════════════════════════════════
+  3452→    const PAIRS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'AVAX/USDT', 'LINK/USDT', 'DOT/USDT', 'POL/USDT', 'LTC/USDT', 'NEAR/USDT', 'APT/USDT', 'ARB/USDT', 'OP/USDT', 'INJ/USDT', 'SUI/USDT'];
+  3453→    const EXCHS = ['BingX', 'MEXC', 'Gate', 'KuCoin', 'Binance', 'Bybit', 'OKX', 'LBank', 'Bitget'];
+  3454→    const QUOTES = {};
+  3455→    let LAST_FETCH = 0;
+  3456→    let MODE_WARN_TS = 0;
+  3457→
+  3458→    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100, LBank: .100, Bitget: .060 };
+  3459→    const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null }, LBank: { spot: null, futures: null }, Bitget: { spot: null, futures: null } };
+  3460→
+  3461→    let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
+  3462→    let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
+  3463→
+  3464→    // ════════════════════════════════════════════════════════
+  3465→    // LOCALSTORAGE
+  3466→    // ════════════════════════════════════════════════════════
+  3467→    const LS = 'arbhft3_';
+  3468→    const lsSet = (k, v) => { try { localStorage.setItem(LS + k, JSON.stringify(v)) } catch (e) { } };
+  3469→    const lsGet = (k, d = null) => { try { const v = localStorage.getItem(LS + k); return v !== null ? JSON.parse(v) : d } catch (e) { return d } };
+  3470→
+  3471→    function saveApi(exch) {
+  3472→      const key = document.getElementById(exch + '-key')?.value?.trim();
+  3473→      const secret = document.getElementById(exch + '-secret')?.value?.trim();
+  3474→      const pp = document.getElementById(exch + '-pp')?.value?.trim();
+  3475→      if (!key || !secret) { notify('⚠ Preencha API Key e Secret do ' + exch, 'w'); return }
+  3476→      const data = { key, secret }; if (pp) data.passphrase = pp;
+  3477→      lsSet('keys_' + exch, data);
+  3478→      document.getElementById(exch + '-key').classList.add('valid');
+  3479→      document.getElementById(exch + '-secret').classList.add('valid');
+  3480→      notify('💾 ' + exch + ' salvo no navegador', 'p');
+  3481→      fetchBalances(exch);
+  3482→    }
+  3483→
+  3484→    function loadSavedKeys() {
+  3485→      EXCHS.forEach(ex => {
+  3486→        const exl = ex.toLowerCase();
+  3487→        const s = lsGet('keys_' + exl);
+  3488→        if (!s || !s.key) { setApiSt(exl, 'off', 'Sem key'); return; }
+  3489→        const ki = document.getElementById(exl + '-key'), si = document.getElementById(exl + '-secret');
+  3490→        if (ki && s.key) { ki.value = s.key; ki.classList.add('valid') }
+  3491→        if (si && s.secret) { si.value = s.secret; si.classList.add('valid') }
+  3492→        const pi = document.getElementById(exl + '-pp'); if (pi && s.passphrase) pi.value = s.passphrase;
+  3493→        setApiSt(exl, 'loading', 'Verificando...');
+  3494→      });
+  3495→    }
+  3496→
+  3497→    function loadSavedConfig() {
+  3498→      ['minSpread', 'minNet', 'orderSize', 'maxOrders', 'stopLoss', 'maxDailyLoss', 'maxExposure', 'minLiq'].forEach(k => {
+  3499→        const v = lsGet('cfg_' + k); if (v != null) { const el = document.getElementById('cfg-' + k); if (el) el.value = v }
+  3500→      });
+  3501→      ['ss', 'sf', 'fs', 'ff', 'auto', 'confirm'].forEach(k => {
+  3502→        const v = lsGet('tog_' + k);
+  3503→        // tog-ss é o modo principal — nunca desativa por localStorage
+  3504→        if (v != null && k !== 'ss') { const el = document.getElementById('tog-' + k); if (el) el.checked = v }
+  3505→      });
+  3506→    }
+  3507→
+  3508→    function loadSavedTrades() {
+  3509→      tradeHistory = lsGet('trades') || [];
+  3510→      positions = lsGet('positions') || [];
+  3511→      tradeId = tradeHistory.length ? Math.max(...tradeHistory.map(t => t.id || 0)) + 1 : 1;
+  3512→    }
+  3513→
+  3514→    document.addEventListener('change', e => {
+  3515→      if (e.target.id && e.target.id.startsWith('cfg-')) lsSet('cfg_' + e.target.id.replace('cfg-', ''), e.target.value);
+  3516→      if (e.target.id && e.target.id.startsWith('tog-')) lsSet('tog_' + e.target.id.replace('tog-', ''), e.target.checked);
+  3517→    });
+  3518→
+  3519→    // ════════════════════════════════════════════════════════
+  3520→    // CRYPTO — Web Crypto API
+  3521→    // ════════════════════════════════════════════════════════
+  3522→    async function hmacHex(msg, secret, algo = 'SHA-256') {
+  3523→      const enc = new TextEncoder();
+  3524→      const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: algo }, false, ['sign']);
+  3525→      const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  3526→      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  3527→    }
+  3528→    async function hmacB64(msg, secret) {
+  3529→      const enc = new TextEncoder();
+  3530→      const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  3531→      const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  3532→      return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  3533→    }
+  3534→    async function sha512hex(msg) {
+  3535→      const enc = new TextEncoder();
+  3536→      const buf = await crypto.subtle.digest('SHA-512', enc.encode(msg || ''));
+  3537→      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  3538→    }
+  3539→
+  3540→    // ════════════════════════════════════════════════════════
+  3541→    // FETCH with CORS proxy fallback
+  3542→    // ════════════════════════════════════════════════════════
+  3543→    const DEFAULT_PROXY_BASE = '';
+  3544→    function getProxyBase() {
+  3545→      try {
+  3546→        const qp = new URLSearchParams(location.search).get('proxy');
+  3547→        if (qp) {
+  3548→          const clean = qp.replace(/\/+$/, '');
+  3549→          localStorage.setItem('proxy_base', clean);
+  3550→          return clean;
+  3551→        }
+  3552→      } catch (e) { }
+  3553→      const stored = localStorage.getItem('proxy_base');
+  3554→      if (stored) return stored.replace(/\/+$/, '');
+  3555→      return DEFAULT_PROXY_BASE;
+  3556→    }
+  3557→    async function apiFetch(url, opts = {}, noThrow = false) {
+  3558→      // Passa URL COMPLETA como _target — proxy repassa sem modificar
+  3559→      function buildProxyUrl(originalUrl) {
+  3560→        const proxyBase = getProxyBase();
+  3561→        if (proxyBase) return proxyBase + '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3562→        if (location && location.port === '8080') return '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3563→        if (location && location.protocol === 'file:') return DEFAULT_PROXY_BASE + '/proxy?_target=' + encodeURIComponent(originalUrl);
+  3564→        return '';
+  3565→      }
+  3566→      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
+  3567→      const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
+  3568→      const forceProxy = isExchangeUrl;
+  3569→      let lastErr = null;
+  3570→
+  3571→      // 1) Tenta proxy (render/local)
+  3572→      try {
+  3573→        const proxyUrl = buildProxyUrl(url);
+  3574→        if (!proxyUrl) {
+  3575→          lastErr = 'Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base';
+  3576→        } else {
+  3577→          const h = { ...(opts.headers || {}) };
+  3578→          delete h['content-length']; delete h['Content-Length'];
+  3579→          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
+  3580→          if (r.ok || r.status < 500) return r;
+  3581→        }
+  3582→      } catch (e) {
+  3583→        console.warn('Proxy falhou:', e.message);
+  3584→        lastErr = e.message || 'Proxy offline';
+  3585→        const led = document.getElementById('proxy-led');
+  3586→        if (led) led.style.background = 'var(--red)';
+  3587→      }
+  3588→
+  3589→      // 2) Tenta direto (apenas quando não for exchange/CORS)
+  3590→      if (!forceProxy) {
+  3591→        try {
+  3592→          const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(8000) });
+  3593→          return r;
+  3594→        } catch (e) {
+  3595→          console.warn('Direto falhou:', e.message);
+  3596→        }
+  3597→      }
+  3598→
+  3599→      // 3) Fallback: corsproxy.io (apenas GET público)
+  3600→      if (!opts.method || opts.method === 'GET') {
+  3601→        try {
+  3602→          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
+  3603→          if (r.ok) return r;
+  3604→        } catch (e) { }
+  3605→      }
+  3606→
+  3607→      if (!noThrow) throw new Error(lastErr || 'Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+  3608→    }
+  3609→
+  3610→    // ════════════════════════════════════════════════════════
+  3611→    // SERVER TIMESTAMP — evita erro de relógio local
+  3612→    // ════════════════════════════════════════════════════════
+  3613→    // Offset global calculado uma vez no início
+  3614→    // Offset fixo: relógio do PC está ~56 anos adiantado (2082 em vez de 2026)
+  3615→    // Calculado como: timestamp_correto_2026 - timestamp_errado_pc
+  3616→    let GLOBAL_TS_OFFSET = 0;
+  3617→    let TS_OFFSET_FETCHED = false;
+  3618→
+  3619→    async function initTsOffset() {
+  3620→      if (TS_OFFSET_FETCHED) return;
+  3621→      // Tenta buscar timestamp real do servidor via proxy
+  3622→      const apis = [
+  3623→        { url: 'https://api.mexc.com/api/v3/time', parse: d => d.serverTime },
+  3624→        { url: 'https://api.binance.com/api/v3/time', parse: d => d.serverTime },
+  3625→        { url: 'https://api.kucoin.com/api/v1/timestamp', parse: d => d.data },
+  3626→        { url: 'https://api.gateio.ws/api/v4/spot/time', parse: d => d.server_time * 1000 }
+  3627→      ];
+  3628→      for (const api of apis) {
+  3629→        try {
+  3630→          const before = Date.now();
+  3631→          const r = await apiFetch(api.url, { method: 'GET' }, true);
+  3632→          if (!r) continue;
+  3633→          if (!r.ok) continue;
+  3634→          const d = await r.json();
+  3635→          const serverTs = api.parse(d);
+  3636→          if (serverTs && serverTs > 1000000000000 && serverTs < 2000000000000) {
+  3637→            const latency = Math.round((Date.now() - before) / 2);
+  3638→            GLOBAL_TS_OFFSET = (serverTs + latency) - Date.now();
+  3639→            TS_OFFSET_FETCHED = true;
+  3640→            console.log('[TS] Offset: ' + GLOBAL_TS_OFFSET + 'ms via ' + api.url + ' (ts=' + serverTs + ')');
+  3641→            return;
+  3642→          }
+  3643→        } catch (e) { console.warn('[TS] ' + api.url + ' falhou:', errMsg(e)); continue }
+  3644→      }
+  3645→      // Fallback: se PC está em 2082 (timestamp > ano 2050 = 2524608000000ms)
+  3646→      const wrongNow = Date.now();
+  3647→      if (wrongNow > 2524608000000) {
+  3648→        // Diferença em ms de 2082 para 2026 = ~56 anos
+  3649→        GLOBAL_TS_OFFSET = -(wrongNow - 1740534000000);
+  3650→        console.warn('[TS] Fallback offset: ' + GLOBAL_TS_OFFSET + 'ms');
+  3651→      }
+  3652→      TS_OFFSET_FETCHED = true;
+  3653→    }
+  3654→
+  3655→    function correctTs() {
+  3656→      return Date.now() + GLOBAL_TS_OFFSET;
+  3657→    }
+  3658→
+  3659→    async function getServerTs(exch) {
+  3660→      await initTsOffset();
+  3661→      return correctTs();
+  3662→    }
+  3663→
+  3664→    // ════════════════════════════════════════════════════════
+  3665→    // REAL BALANCE FETCH
+  3666→    // ════════════════════════════════════════════════════════
+  3667→    async function fetchBalances(exch) {
+  3668→      const exl = exch.toLowerCase();
+  3669→      const saved = lsGet('keys_' + exl);
+  3670→      if (!saved || !saved.key || !saved.secret) { setApiSt(exl, 'off', 'Sem key'); setBalDsp(exl, null, null, 'nokey'); return }
+  3671→      setApiSt(exl, 'loading', 'Buscando...');
+  3672→      try {
+  3673→        let res;
+  3674→        if (exl === 'bingx') res = await balBingX(saved);
+  3675→        else if (exl === 'mexc') res = await balMEXC(saved);
+  3676→        else if (exl === 'gate') res = await balGate(saved);
+  3677→        else if (exl === 'kucoin') res = await balKuCoin(saved);
+  3678→        else if (exl === 'bybit') res = await balBybit(saved);
+  3679→        else if (exl === 'okx') res = await balOKX(saved);
+  3680→        else res = { error: 'Saldo não implementado para ' + exch };
+  3681→        // Normaliza nome para bater com chave do objeto BAL
+  3682→        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
+  3683→        if (res.error) {
+  3684→          setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+  3685→          notify('✗ ' + exchKey + ': ' + res.error, 'e');
+  3686→        } else {
+  3687→          if (BAL[exchKey]) { BAL[exchKey].spot = res.spot; BAL[exchKey].futures = res.futures; }
+  3688→          setApiSt(exl, 'on', 'Conectado ✓'); setBalDsp(exl, res.spot, res.futures, 'ok'); updateLed(exl, 'on');
+  3689→          setBalTs(exl); setBalPerms(exl, true); updateBalPanel();
+  3690→          notify('✓ ' + exchKey + ' — Spot: $' + fmt(res.spot) + ' | Fut: $' + fmt(res.futures), 'g');
+  3691→        }
+  3692→      } catch (err) {
+  3693→        setApiSt(exl, 'err', 'Erro conexão'); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+  3694→        notify('⚠ ' + exch + ': ' + errMsg(err), 'w');
+  3695→      }
+  3696→    }
+  3697→
+  3698→    async function balBingX(c) {
+  3699→      const ts = Date.now().toString();
+  3700→      const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3701→      const sig = await hmacHex(p, c.secret);
+  3702→      try {
+  3703→        const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/account/balance?' + p + '&signature=' + sig, { method: 'GET', headers: { 'X-BX-APIKEY': c.key } });
+  3704→        const d = await r.json();
+  3705→        if (d.code !== 0) return { error: 'BingX: ' + (d.msg || 'code ' + d.code) };
+  3706→        const u = (d.data?.balances || []).find(b => b.asset === 'USDT');
+  3707→        const spot = parseFloat(u?.free || 0);
+  3708→        let fut = 0;
+  3709→        try {
+  3710→          const s2 = await hmacHex(p, c.secret);
+  3711→          const r2 = await apiFetch('https://open-api.bingx.com/openApi/swap/v2/user/balance?' + p + '&signature=' + s2, { method: 'GET', headers: { 'X-BX-APIKEY': c.key } });
+  3712→          const d2 = await r2.json();
+  3713→          fut = parseFloat(d2.data?.balance?.availableMargin || 0);
+  3714→        } catch (ef) { }
+  3715→        return { spot, futures: fut };
+  3716→      } catch (e) { return { error: 'BingX: ' + e.message } }
+  3717→    }
+  3718→
+  3719→    async function balMEXC(c) {
+  3720→      const ts = Date.now().toString();
+  3721→      const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3722→      const sig = await hmacHex(p, c.secret);
+  3723→      try {
+  3724→        const r = await apiFetch('https://api.mexc.com/api/v3/account?' + p + '&signature=' + sig, { method: 'GET', headers: { 'X-MEXC-APIKEY': c.key } });
+  3725→        const d = await r.json();
+  3726→        if (d.code && d.code !== 200) return { error: 'MEXC: ' + (d.msg || 'code ' + d.code) };
+  3727→        const u = (d.balances || []).find(b => b.asset === 'USDT');
+  3728→        const spot = parseFloat(u?.free || 0);
+  3729→        let fut = 0;
+  3730→        try {
+  3731→          const ts2 = Date.now().toString();
+  3732→          const strSign = c.key + ts2;
+  3733→          const s2 = await hmacHex(strSign, c.secret);
+  3734→          const r2 = await apiFetch('https://futures.mexc.com/api/v1/private/account/assets', { method: 'GET', headers: { 'ApiKey': c.key, 'Request-Time': ts2, 'Signature': s2, 'Content-Type': 'application/json' } });
+  3735→          const d2 = await r2.json();
+  3736→          const ua = (d2.data || []).find(a => a.currency === 'USDT');
+  3737→          fut = parseFloat(ua?.availableBalance || 0);
+  3738→        } catch (ef) { }
+  3739→        return { spot, futures: fut };
+  3740→      } catch (e) { return { error: 'MEXC: ' + e.message } }
+  3741→    }
+  3742→
+  3743→    async function balGate(c) {
+  3744→      const tsSec = Math.floor(Date.now() / 1000).toString();
+  3745→      const bodyHash = await sha512hex('');
+  3746→      const signStr = 'GET\n/api/v4/spot/accounts\n\n' + bodyHash + '\n' + tsSec;
+  3747→      const sig = await hmacHex(signStr, c.secret, 'SHA-512');
+  3748→      try {
+  3749→        const r = await apiFetch('https://api.gateio.ws/api/v4/spot/accounts', { method: 'GET', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec, 'Content-Type': 'application/json' } });
+  3750→        const d = await r.json();
+  3751→        if (!Array.isArray(d)) return { error: 'Gate: ' + (d.message || JSON.stringify(d).slice(0, 60)) };
+  3752→        const spot = parseFloat(d.find(b => b.currency === 'USDT')?.available || 0);
+  3753→        let fut = 0;
+  3754→        try {
+  3755→          const s2Str = 'GET\n/api/v4/futures/usdt/accounts\n\n' + bodyHash + '\n' + tsSec;
+  3756→          const s2 = await hmacHex(s2Str, c.secret, 'SHA-512');
+  3757→          const r2 = await apiFetch('https://api.gateio.ws/api/v4/futures/usdt/accounts', { method: 'GET', headers: { 'KEY': c.key, 'SIGN': s2, 'Timestamp': tsSec, 'Content-Type': 'application/json' } });
+  3758→          const d2 = await r2.json();
+  3759→          fut = parseFloat(d2.available || d2.total || 0);
+  3760→        } catch (ef) { }
+  3761→        return { spot, futures: fut };
+  3762→      } catch (e) { return { error: 'Gate: ' + e.message } }
+  3763→    }
+  3764→
+  3765→    async function balKuCoin(c) {
+  3766→      if (!c.passphrase) return { error: 'KuCoin: Passphrase obrigatorio' };
+  3767→      const ts = Date.now().toString();
+  3768→      const path = '/api/v1/accounts';
+  3769→      const query = 'currency=USDT';
+  3770→      const sig = await hmacB64(ts + 'GET' + path + '?' + query, c.secret);
+  3771→      const pp = await hmacB64(c.passphrase, c.secret);
+  3772→      try {
+  3773→        const r = await apiFetch('https://api.kucoin.com' + path + '?' + query, { method: 'GET', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' } });
+  3774→        const d = await r.json();
+  3775→        if (d.code !== '200000') return { error: 'KuCoin: ' + (d.msg || 'code ' + d.code) };
+  3776→        const accs = d.data || [];
+  3777→        const spot = parseFloat(accs.find(a => a.type === 'trade' && a.currency === 'USDT')?.available || 0);
+  3778→        let fut = 0;
+  3779→        try {
+  3780→          const ts2 = Date.now().toString();
+  3781→          const fPath = '/api/v1/account-overview';
+  3782→          const fQuery = 'currency=USDT';
+  3783→          const sig2 = await hmacB64(ts2 + 'GET' + fPath + '?' + fQuery, c.secret);
+  3784→          const pp2 = await hmacB64(c.passphrase, c.secret);
+  3785→          const r2 = await apiFetch('https://api-futures.kucoin.com' + fPath + '?' + fQuery, { method: 'GET', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig2, 'KC-API-TIMESTAMP': ts2, 'KC-API-PASSPHRASE': pp2, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' } });
+  3786→          const d2 = await r2.json();
+  3787→          if (d2.code === '200000' && d2.data) fut = parseFloat(d2.data.availableBalance || 0);
+  3788→        } catch (ef) { }
+  3789→        return { spot, futures: fut };
+  3790→      } catch (e) { return { error: 'KuCoin: ' + e.message } }
+  3791→    }
+  3792→    async function balBybit(c) {
+  3793→      // Bybit V5 — HMAC-SHA256(ts + apiKey + recvWindow + queryString, secret)
+  3794→      try {
+  3795→        const ts = (Date.now() + GLOBAL_TS_OFFSET).toString();
+  3796→        const recv = '5000';
+  3797→        const qSpot = 'accountType=UNIFIED&coin=USDT';
+  3798→        const sigSpot = await hmacHex(ts + c.key + recv + qSpot, c.secret);
+  3799→        const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-SIGN': sigSpot, 'X-BAPI-RECV-WINDOW': recv };
+  3800→        const r = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qSpot, { method: 'GET', headers: h });
+  3801→        if (!r) return { error: 'Bybit: sem resposta' };
+  3802→        const d = await r.json();
+  3803→        if (d.retCode !== 0) return { error: 'Bybit: ' + (d.retMsg || 'code ' + d.retCode) };
+  3804→        const coins = d.result?.list?.[0]?.coin || [];
+  3805→        const usdt = coins.find(c => c.coin === 'USDT');
+  3806→        const spot = parseFloat(usdt?.walletBalance || 0);
+  3807→        // Futures balance
+  3808→        const qFut = 'accountType=CONTRACT&coin=USDT';
+  3809→        const ts2 = (Date.now() + GLOBAL_TS_OFFSET).toString();
+  3810→        const sigFut = await hmacHex(ts2 + c.key + recv + qFut, c.secret);
+  3811→        const h2 = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts2, 'X-BAPI-SIGN': sigFut, 'X-BAPI-RECV-WINDOW': recv };
+  3812→        const r2 = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qFut, { method: 'GET', headers: h2 });
+  3813→        let fut = 0;
+  3814→        if (r2) { const d2 = await r2.json(); if (d2.retCode === 0) { const c2 = d2.result?.list?.[0]?.coin || []; const u2 = c2.find(x => x.coin === 'USDT'); fut = parseFloat(u2?.walletBalance || 0); } }
+  3815→        return { spot, futures: fut };
+  3816→      } catch (e) { return { error: 'Bybit: ' + e.message } }
+  3817→    }
+  3818→    async function balOKX(c) {
+  3819→      // OKX V5 — HMAC-SHA256-Base64(ts + 'GET' + path, secret)
+  3820→      if (!c.passphrase) return { error: 'OKX: Passphrase obrigatória' };
+  3821→      try {
+  3822→        const ts = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+  3823→        const path = '/api/v5/asset/balances?ccy=USDT';
+  3824→        const sig = await hmacB64(ts + 'GET' + path, c.secret);
+  3825→        const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+  3826→        const r = await apiFetch('https://www.okx.com' + path, { method: 'GET', headers: h });
+  3827→        if (!r) return { error: 'OKX: sem resposta' };
+  3828→        const d = await r.json();
+  3829→        if (d.code !== '0') return { error: 'OKX: ' + (d.msg || 'code ' + d.code) };
+  3830→        const spot = parseFloat(d.data?.[0]?.availBal || 0);
+  3831→        // Futures (trading account)
+  3832→        const path2 = '/api/v5/account/balance?ccy=USDT';
+  3833→        const ts2 = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+  3834→        const sig2 = await hmacB64(ts2 + 'GET' + path2, c.secret);
+  3835→        const h2 = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig2, 'OK-ACCESS-TIMESTAMP': ts2, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+  3836→        const r2 = await apiFetch('https://www.okx.com' + path2, { method: 'GET', headers: h2 });
+  3837→        let fut = 0;
+  3838→        if (r2) { const d2 = await r2.json(); if (d2.code === '0') { const det = d2.data?.[0]?.details || []; const u2 = det.find(x => x.ccy === 'USDT'); fut = parseFloat(u2?.availBal || 0); } }
+  3839→        return { spot, futures: fut };
+  3840→      } catch (e) { return { error: 'OKX: ' + e.message } }
+  3841→    }
+  3842→    // ════════════════════════════════════════════════════════
+  3843→    // PLACE REAL ORDERS
+  3844→    // ════════════════════════════════════════════════════════
+  3845→    async function placeRealOrder(exch, symbol, side, qty, price, isSpot) {
+  3846→      const exl = exch.toLowerCase();
+  3847→      const c = lsGet('keys_' + exl);
+  3848→      if (!c || !c.key) throw new Error('Key ' + exch + ' não configurada');
+  3849→      if (exl === 'bingx') return placeOrderBingX(c, symbol, side, qty, price, isSpot);
+  3850→      if (exl === 'mexc') return placeOrderMEXC(c, symbol, side, qty, price, isSpot);
+  3851→      if (exl === 'gate') return placeOrderGate(c, symbol, side, qty, price, isSpot);
+  3852→      if (exl === 'kucoin') return placeOrderKuCoin(c, symbol, side, qty, price, isSpot);
+  3853→      throw new Error('Exchange desconhecida');
+  3854→    }
+  3855→
+  3856→    async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
+  3857→      // BingX: params in query string, signed with HMAC-SHA256
+  3858→      const ts = Date.now().toString();
+  3859→      const sf = sym.replace('/', '').replace('-USDT', '').concat('-USDT');
+  3860→      const params = isSpot
+  3861→        ? 'symbol=' + sf + '&side=' + side.toUpperCase() + '&type=LIMIT&quantity=' + qty + '&price=' + price + '&timeInForce=GTC&timestamp=' + ts + '&recvWindow=5000'
+  3862→        : 'symbol=' + sf + '&side=' + side.toUpperCase() + '&positionSide=LONG&type=LIMIT&quantity=' + qty + '&price=' + price + '&timestamp=' + ts + '&recvWindow=5000';
+  3863→      const sig = await hmacHex(params, c.secret);
+  3864→      const ep = isSpot ? '/openApi/spot/v1/trade/order' : '/openApi/swap/v2/trade/order';
+  3865→      try {
+  3866→        const r = await apiFetch('https://open-api.bingx.com' + ep + '?' + params + '&signature=' + sig, { method: 'POST', headers: { 'X-BX-APIKEY': c.key, 'Content-Type': 'application/json' } });
+  3867→        const d = await r.json();
+  3868→        if (d.code !== 0) throw new Error('BingX: ' + (d.msg || 'code ' + d.code));
+  3869→        return { orderId: d.data?.orderId || d.data?.order?.orderId, exchange: 'BingX', symbol: sym, side, qty, price };
+  3870→      } catch (e) { throw new Error('BingX ordem: ' + e.message) }
+  3871→    }
+  3872→
+  3873→    async function placeOrderMEXC(c, sym, side, qty, price, isSpot) {
+  3874→      // MEXC Spot: body JSON com symbol, params de autenticação no query string
+  3875→      // MEXC requires symbol in BODY for POST orders
+  3876→      const ts = Date.now().toString();
+  3877→      const sf = sym.replace('/', '');
+  3878→      if (isSpot) {
+  3879→        // Spot: symbol e dados no body JSON, auth no query
+  3880→        const bodyObj = { symbol: sf, side: side.toUpperCase(), type: 'LIMIT', quantity: String(qty), price: String(price), timeInForce: 'GTC' };
+  3881→        const bodyStr = JSON.stringify(bodyObj);
+  3882→        const p = 'timestamp=' + ts + '&recvWindow=5000';
+  3883→        const sig = await hmacHex(p, c.secret);
+  3884→        try {
+  3885→          const r = await apiFetch('https://api.mexc.com/api/v3/order?' + p + '&signature=' + sig, { method: 'POST', headers: { 'X-MEXC-APIKEY': c.key, 'Content-Type': 'application/json' }, body: bodyStr });
+  3886→          const d = await r.json();
+  3887→          if (d.code && d.code !== 200) throw new Error('MEXC Spot: ' + (d.msg || 'code ' + d.code));
+  3888→          return { orderId: d.orderId, exchange: 'MEXC', symbol: sym, side, qty, price };
+  3889→        } catch (e) { throw new Error('MEXC spot ordem: ' + e.message) }
+  3890→      } else {
+  3891→        // Futures: contract.mexc.com, sign = HMAC(apiKey+ts)
+  3892→        const ts2 = Date.now().toString();
+  3893→        const strSign = c.key + ts2;
+  3894→        const sig2 = await hmacHex(strSign, c.secret);
+  3895→        const bodyObj = { symbol: sf + '_USDT', side: side.toUpperCase() === 'BUY' ? 1 : 3, orderType: 1, price: String(price), vol: String(qty), openType: 1, type: 1 };
+  3896→        try {
+  3897→          const r = await apiFetch('https://futures.mexc.com/api/v1/private/order/create', { method: 'POST', headers: { 'ApiKey': c.key, 'Request-Time': ts2, 'Signature': sig2, 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj) });
+  3898→          const d = await r.json();
+  3899→          if (!d.success) throw new Error('MEXC Fut: ' + (d.message || 'erro'));
+  3900→          return { orderId: d.data, exchange: 'MEXC', symbol: sym, side, qty, price };
+  3901→        } catch (e) { throw new Error('MEXC fut ordem: ' + e.message) }
+  3902→      }
+  3903→    }
+  3904→
+  3905→    async function placeOrderGate(c, sym, side, qty, price, isSpot) {
+  3906→      // Gate.io: HMAC-SHA512, body hash no signed string
+  3907→      const tsSec = Math.floor(Date.now() / 1000).toString();
+  3908→      const sf = sym.replace('/', '_');
+  3909→      const bodyObj = isSpot
+  3910→        ? { currency_pair: sf, side: side.toLowerCase(), type: 'limit', amount: String(qty), price: String(price), time_in_force: 'gtc' }
+  3911→        : { contract: sf, size: side.toLowerCase() === 'buy' ? Math.abs(qty) : -Math.abs(qty), price: String(price), tif: 'gtc' };
+  3912→      const bodyStr = JSON.stringify(bodyObj);
+  3913→      const bh = await sha512hex(bodyStr);
+  3914→      const path = isSpot ? '/api/v4/spot/orders' : '/api/v4/futures/usdt/orders';
+  3915→      const signStr = 'POST\n' + path + '\n\n' + bh + '\n' + tsSec;
+  3916→      const sig = await hmacHex(signStr, c.secret, 'SHA-512');
+  3917→      try {
+  3918→        const r = await apiFetch('https://api.gateio.ws' + path, { method: 'POST', headers: { 'KEY': c.key, 'SIGN': sig, 'Timestamp': tsSec, 'Content-Type': 'application/json' }, body: bodyStr });
+  3919→        const d = await r.json();
+  3920→        if (d.message && d.message !== 'ok' && !d.id) throw new Error('Gate: ' + d.message);
+  3921→        return { orderId: d.id, exchange: 'Gate', symbol: sym, side, qty, price };
+  3922→      } catch (e) { throw new Error('Gate ordem: ' + e.message) }
+  3923→    }
+  3924→
+  3925→    async function placeOrderKuCoin(c, sym, side, qty, price, isSpot) {
+  3926→      // KuCoin: sign = HMAC-SHA256-B64(ts+method+path+body)
+  3927→      if (!c.passphrase) throw new Error('KuCoin: Passphrase obrigatorio');
+  3928→      const ts = Date.now().toString();
+  3929→      const sf = isSpot ? sym.replace('/', '-') : sym.replace('/', '');
+  3930→      const path = isSpot ? '/api/v1/orders' : '/api/v1/orders';
+  3931→      const host = isSpot ? 'https://api.kucoin.com' : 'https://api-futures.kucoin.com';
+  3932→      const clientOid = 'arb' + ts + Math.random().toString(36).slice(2, 6);
+  3933→      const bodyObj = isSpot
+  3934→        ? { clientOid, symbol: sf, side: side.toLowerCase(), type: 'limit', price: String(price), size: String(qty) }
+  3935→        : { clientOid, symbol: sf, side: side.toLowerCase(), type: 'limit', price: String(price), size: String(qty), leverage: '1' };
+  3936→      const bodyStr = JSON.stringify(bodyObj);
+  3937→      const sig = await hmacB64(ts + 'POST' + path + bodyStr, c.secret);
+  3938→      const pp = await hmacB64(c.passphrase, c.secret);
+  3939→      try {
+  3940→        const r = await apiFetch(host + path, { method: 'POST', headers: { 'KC-API-KEY': c.key, 'KC-API-SIGN': sig, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '2', 'Content-Type': 'application/json' }, body: bodyStr });
+  3941→        const d = await r.json();
+  3942→        if (d.code !== '200000') throw new Error('KuCoin: ' + (d.msg || 'code ' + d.code));
+  3943→        return { orderId: d.data?.orderId, exchange: 'KuCoin', symbol: sym, side, qty, price };
+  3944→      } catch (e) { throw new Error('KuCoin ordem: ' + e.message) }
+  3945→    }
+  3946→    async function testApi(exch) {
+  3947→      const s = lsGet('keys_' + exch);
+  3948→      if (!s || !s.key) { notify('⚠ Salve a key do ' + exch + ' primeiro', 'w'); return }
+  3949→      notify('🔌 Testando ' + exch + '...', '');
+  3950→      await fetchBalances(exch);
+  3951→    }
+  3952→
+  3953→    // ════════════════════════════════════════════════════════
+  3954→    // UI HELPERS
+  3955→    // ════════════════════════════════════════════════════════
+  3956→    function setApiSt(exl, state, txt) {
+  3957→      const dot = document.getElementById(exl + '-dot');
+  3958→      const stat = document.getElementById(exl + '-status');
+  3959→      if (dot) { dot.className = 'api-status-dot'; if (state === 'on') dot.classList.add('on'); else if (state === 'err') dot.classList.add('err'); else if (state === 'loading') dot.classList.add('loading'); else dot.classList.add('off') }
+  3960→      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--green)' : state === 'err' ? 'var(--red)' : state === 'loading' ? 'var(--yellow)' : 'var(--dim)' }
+  3961→    }
+  3962→    function setBalDsp(exl, spot, fut, state) {
+  3963→      const bs = document.getElementById(exl + '-bal-s'), bf = document.getElementById(exl + '-bal-f');
+  3964→      const cls = 'apibv ' + (state === 'ok' ? 'ok' : state === 'error' ? 'err' : 'loading');
+  3965→      if (bs) { bs.className = cls; bs.textContent = state === 'ok' ? '$' + fmt(spot) : state === 'nokey' ? 'Sem key' : '—' }
+  3966→      if (bf) { bf.className = cls; bf.textContent = state === 'ok' ? '$' + fmt(fut) : state === 'nokey' ? 'Sem key' : '—' }
+  3967→    }
+  3968→    function setBalTs(exl) { const el = document.getElementById(exl + '-bal-ts'); if (el) el.textContent = new Date().toLocaleTimeString('pt-BR') }
+  3969→    function setBalPerms(exl, ok) {
+  3970→      const el = document.getElementById(exl + '-perms'); if (!el) return;
+  3971→      el.innerHTML = ok ? '<span class="apiperm ok">✓ SPOT</span><span class="apiperm ok">✓ FUTURES</span><span class="apiperm ok">✓ TRADE</span><span class="apiperm no">✗ WITHDRAW</span>' : '<span class="apiperm no">✗ SPOT</span><span class="apiperm no">✗ FUTURES</span><span class="apiperm no">✗ TRADE</span><span class="apiperm no">✗ WITHDRAW</span>';
+  3972→    }
+  3973→    function updateLed(exl, state) {
+  3974→      const ld = document.getElementById('ld-' + exl); if (!ld) return;
+  3975→      ld.className = 'ld';
+  3976→      if (state === 'on') ld.classList.add('ld-on');
+  3977→      else if (state === 'err') ld.classList.add('ld-err');
+  3978→      else if (state === 'warn') ld.classList.add('ld-warn');
+  3979→    }
+  3980→    function toggleEye(id, btn) {
+  3981→      const inp = document.getElementById(id); if (!inp) return;
+  3982→      inp.type = inp.type === 'password' ? 'text' : 'password';
+  3983→      btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  3984→    }
+  3985→    function applyProxy() {
+  3986→      const inp = document.getElementById('proxy-input');
+  3987→      if (!inp) return;
+  3988→      const val = inp.value.trim().replace(/\/+$/, '');
+  3989→      if (!val) {
+  3990→        localStorage.removeItem('proxy_base');
+  3991→        notify('Proxy removido', 'w');
+  3992→      } else {
+  3993→        localStorage.setItem('proxy_base', val);
+  3994→        notify('Proxy: ' + val, '');
+  3995→      }
+  3996→      pingProxy();
+  3997→    }
+  3998→    async function pingProxy() {
+  3999→      const led = document.getElementById('proxy-led');
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>
