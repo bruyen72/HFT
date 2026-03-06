@@ -35,6 +35,16 @@ public class ProxyController {
         "sec-fetch-dest",
         "sec-fetch-user"
     );
+    // Strip CORS headers from upstream responses — let Spring's CorsFilter handle them
+    private static final List<String> BLOCKED_RESP=List.of(
+        "transfer-encoding",
+        "access-control-allow-origin",
+        "access-control-allow-methods",
+        "access-control-allow-headers",
+        "access-control-expose-headers",
+        "access-control-allow-credentials",
+        "access-control-max-age"
+    );
     private final WebClient client=WebClient.builder()
         .defaultHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .defaultHeader("Accept","application/json")
@@ -64,7 +74,7 @@ public class ProxyController {
             .map(entity -> {
                 HttpHeaders out = new HttpHeaders();
                 entity.getHeaders().forEach((k, v) -> {
-                    if (!"transfer-encoding".equalsIgnoreCase(k)) out.put(k, v);
+                    if (BLOCKED_RESP.stream().noneMatch(b -> b.equalsIgnoreCase(k))) out.put(k, v);
                 });
                 return ResponseEntity.status(entity.getStatusCode()).headers(out).body(entity.getBody());
             })
