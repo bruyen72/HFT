@@ -121,6 +121,11 @@
       background: #334
     }
 
+    .ld-err {
+      background: var(--red);
+      box-shadow: 0 0 4px var(--red)
+    }
+
     .stats {
       display: flex;
       gap: 5px;
@@ -1578,6 +1583,16 @@
       box-shadow: 0 0 5px var(--red)
     }
 
+    .api-status-dot.loading {
+      background: var(--yellow);
+      animation: sdot-pulse 1s infinite
+    }
+
+    @keyframes sdot-pulse {
+      0%, 100% { opacity: 1 }
+      50% { opacity: .3 }
+    }
+
     .api-card-body {
       padding: 14px
     }
@@ -2506,28 +2521,28 @@
       <div class="logo">ARB<span>·HFT</span></div>
       <div class="leds">
         <div class="led">
-          <div class="ld ld-on"></div>BingX
+          <div class="ld ld-off" id="ld-bingx"></div>BingX
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>MEXC
+          <div class="ld ld-off" id="ld-mexc"></div>MEXC
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Gate
+          <div class="ld ld-off" id="ld-gate"></div>Gate
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>KuCoin
+          <div class="ld ld-off" id="ld-kucoin"></div>KuCoin
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Bybit
+          <div class="ld ld-off" id="ld-bybit"></div>Bybit
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>OKX
+          <div class="ld ld-off" id="ld-okx"></div>OKX
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>LBank
+          <div class="ld ld-off" id="ld-lbank"></div>LBank
         </div>
         <div class="led">
-          <div class="ld ld-on"></div>Bitget
+          <div class="ld ld-off" id="ld-bitget"></div>Bitget
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
@@ -2539,11 +2554,11 @@
       </div>
     </div>
     <div class="stats">
-      <div class="pill">WS <b id="wsLat">2ms</b></div>
-      <div class="pill y">Opps <b id="oppCnt">18</b></div>
-      <div class="pill g">PnL Total <b id="totalPnl">+$342.18</b></div>
-      <div class="pill c">Posições <b id="posCount">3</b></div>
-      <div class="pill p">Win Rate <b id="winRate">78.3%</b></div>
+      <div class="pill">WS <b id="wsLat">—</b></div>
+      <div class="pill y">Opps <b id="oppCnt">0</b></div>
+      <div class="pill g">PnL Total <b id="totalPnl">$0.00</b></div>
+      <div class="pill c">Posições <b id="posCount">0</b></div>
+      <div class="pill p">Win Rate <b id="winRate">—</b></div>
       <div class="pill r">Perda/dia <b id="dailyLoss">$0.00</b></div>
       <div class="sdot"></div>
       <span style="font-size:8px;color:var(--green);font-weight:700">LIVE</span>
@@ -2557,10 +2572,10 @@
 
   <!-- ══ GLOBAL TABS ══ -->
   <div id="gtabs">
-    <div class="gtab on" onclick="switchPage('scanner',this)">📊 Scanner <span class="gbadge" id="scanBadge">18</span>
+    <div class="gtab on" onclick="switchPage('scanner',this)">📊 Scanner <span class="gbadge" id="scanBadge">0</span>
     </div>
     <div class="gtab" onclick="switchPage('results',this)">📈 Resultados & Ordens <span class="gbadge gbadge-c"
-        id="ordBadge">47</span></div>
+        id="ordBadge">0</span></div>
     <div class="gtab" onclick="switchPage('api',this)">🔑 API Keys</div>
   </div>
 
@@ -2890,7 +2905,7 @@
           <input class="fi" type="text" id="ordSym" placeholder="BTC..." style="width:50px" oninput="renderOrders()">
           <button class="btn-sm" onclick="exportOrders()">⬇ Export CSV</button>
           <span style="font-size:9px;color:var(--tdim);margin-left:auto">Total: <span id="ordTotal"
-              style="color:var(--cyan);font-weight:700">47</span> trades</span>
+              style="color:var(--cyan);font-weight:700">0</span> trades</span>
         </div>
         <div class="ord-body">
           <table class="ot">
@@ -3034,8 +3049,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#f0b90b">⬡ BingX</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="bingx-dot"></div><span id="bingx-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="bingx-dot"></div><span id="bingx-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3077,8 +3092,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00d4aa">◈ MEXC</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="mexc-dot"></div><span id="mexc-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="mexc-dot"></div><span id="mexc-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3120,8 +3135,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#e6007a">◆ Gate.io</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="gate-dot"></div><span id="gate-status"
-                style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="gate-dot"></div><span id="gate-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3163,7 +3178,7 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#1a73e8">◈ LBank</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="lbank-dot"></div><span id="lbank-status" style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="lbank-dot"></div><span id="lbank-status" style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3198,7 +3213,7 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00c8ff">◆ Bitget</span>
             <div class="api-card-status">
-              <div class="api-status-dot on" id="bitget-dot"></div><span id="bitget-status" style="color:var(--green)">Conectado</span>
+              <div class="api-status-dot off" id="bitget-dot"></div><span id="bitget-status" style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3238,8 +3253,8 @@
           <div class="api-card-hd">
             <span class="api-card-name" style="color:#00ab6c">✦ KuCoin</span>
             <div class="api-card-status">
-              <div class="api-status-dot err" id="kucoin-dot"></div><span id="kucoin-status"
-                style="color:var(--red)">Erro de conexão</span>
+              <div class="api-status-dot off" id="kucoin-dot"></div><span id="kucoin-status"
+                style="color:var(--dim)">Sem key</span>
             </div>
           </div>
           <div class="api-card-body">
@@ -3286,6 +3301,82 @@
                 id="kucoin-bal-ts" style="color:var(--dim)">—</span></div>
           </div>
         </div>
+
+        <!-- Bybit -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#f7a600">⬡ Bybit</span>
+            <div class="api-card-status">
+              <div class="api-status-dot off" id="bybit-dot"></div><span id="bybit-status" style="color:var(--dim)">Sem key</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-secret',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bybit-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bybit-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('bybit')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('bybit')">💾 Salvar</button>
+          </div>
+        </div>
+
+        <!-- OKX -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#3c6bfe">◆ OKX</span>
+            <div class="api-card-status">
+              <div class="api-status-dot off" id="okx-dot"></div><span id="okx-status" style="color:var(--dim)">Sem key</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('okx-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('okx-secret',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-pp" placeholder="Passphrase OKX..."><button class="api-eye" onclick="toggleEye('okx-pp',this)">👁</button></div>
+            </div>
+            <div class="api-perms">
+              <span class="api-perm ok">✓ SPOT</span>
+              <span class="api-perm ok">✓ FUTURES</span>
+              <span class="api-perm ok">✓ TRADE</span>
+              <span class="api-perm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="okx-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="okx-bal-f">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('okx')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('okx')">💾 Salvar</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -3366,10 +3457,10 @@
 
     const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100, LBank: .100, Bitget: .060 };
     const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null }, LBank: { spot: null, futures: null }, Bitget: { spot: null, futures: null } };
-    const BASE_PRICES = { 'BTC/USDT': 95000, 'ETH/USDT': 3400, 'SOL/USDT': 200, 'BNB/USDT': 650, 'XRP/USDT': 2.5, 'DOGE/USDT': 0.38, 'ADA/USDT': 1.05, 'AVAX/USDT': 42, 'LINK/USDT': 24, 'DOT/USDT': 8.5, 'MATIC/USDT': 0.90, 'LTC/USDT': 120, 'NEAR/USDT': 6.2, 'APT/USDT': 12, 'ARB/USDT': 1.1, 'OP/USDT': 2.1, 'INJ/USDT': 28, 'SUI/USDT': 4.8 };
 
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
     let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
+    let arbInProgress = false;
 
     // ════════════════════════════════════════════════════════
     // LOCALSTORAGE
@@ -3394,7 +3485,8 @@
     function loadSavedKeys() {
       EXCHS.forEach(ex => {
         const exl = ex.toLowerCase();
-        const s = lsGet('keys_' + exl); if (!s) return;
+        const s = lsGet('keys_' + exl);
+        if (!s || !s.key) { setApiSt(exl, 'off', 'Sem key'); return; }
         const ki = document.getElementById(exl + '-key'), si = document.getElementById(exl + '-secret');
         if (ki && s.key) { ki.value = s.key; ki.classList.add('valid') }
         if (si && s.secret) { si.value = s.secret; si.classList.add('valid') }
@@ -3472,7 +3564,7 @@
         if (location && location.protocol === 'file:') return DEFAULT_PROXY_BASE + '/proxy?_target=' + encodeURIComponent(originalUrl);
         return '';
       }
-      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com'];
+      const exchangeHosts = ['api.binance.com', 'api.mexc.com', 'api.kucoin.com', 'api.gateio.ws', 'open-api.bingx.com', 'api.bybit.com', 'www.okx.com', 'api.lbkex.com', 'api.bitget.com'];
       const isExchangeUrl = exchangeHosts.some(h => url.includes(h));
       const forceProxy = isExchangeUrl;
       let lastErr = null;
@@ -3505,15 +3597,9 @@
         }
       }
 
-      // 3) Fallback: corsproxy.io (apenas GET público)
-      if (!opts.method || opts.method === 'GET') {
-        try {
-          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
-          if (r.ok) return r;
-        } catch (e) { }
-      }
-
-      if (!noThrow) throw new Error(lastErr || 'Proxy local offline. Inicie o backend Java: java -jar arb-hft-engine-1.0.0.jar');
+      // Fallback corsproxy.io REMOVIDO — causava 429 em massa e vazamento de dados
+      // Se o proxy configurado falha, encerra aqui com erro claro.
+      if (!noThrow) throw new Error(lastErr || 'Proxy offline. Abra o site com ?proxy=URL_DO_BACKEND');
     }
 
     // ════════════════════════════════════════════════════════
@@ -3584,8 +3670,13 @@
         else if (exl === 'mexc') res = await balMEXC(saved);
         else if (exl === 'gate') res = await balGate(saved);
         else if (exl === 'kucoin') res = await balKuCoin(saved);
+        else if (exl === 'bybit') res = await balBybit(saved);
+        else if (exl === 'okx') res = await balOKX(saved);
+        else if (exl === 'lbank') res = await balLBank(saved);
+        else if (exl === 'bitget') res = await balBitget(saved);
+        else res = { error: 'Saldo não implementado para ' + exch };
         // Normaliza nome para bater com chave do objeto BAL
-        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch;
+        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
         if (res.error) {
           setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
           notify('✗ ' + exchKey + ': ' + res.error, 'e');
@@ -3695,6 +3786,87 @@
         return { spot, futures: fut };
       } catch (e) { return { error: 'KuCoin: ' + e.message } }
     }
+    async function balBybit(c) {
+      // Bybit V5 — HMAC-SHA256(ts + apiKey + recvWindow + queryString, secret)
+      try {
+        const ts = (Date.now() + GLOBAL_TS_OFFSET).toString();
+        const recv = '5000';
+        const qSpot = 'accountType=UNIFIED&coin=USDT';
+        const sigSpot = await hmacHex(ts + c.key + recv + qSpot, c.secret);
+        const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-SIGN': sigSpot, 'X-BAPI-RECV-WINDOW': recv };
+        const r = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qSpot, { method: 'GET', headers: h });
+        if (!r) return { error: 'Bybit: sem resposta' };
+        const d = await r.json();
+        if (d.retCode !== 0) return { error: 'Bybit: ' + (d.retMsg || 'code ' + d.retCode) };
+        const coins = d.result?.list?.[0]?.coin || [];
+        const usdt = coins.find(c => c.coin === 'USDT');
+        const spot = parseFloat(usdt?.walletBalance || 0);
+        // Futures balance
+        const qFut = 'accountType=CONTRACT&coin=USDT';
+        const ts2 = (Date.now() + GLOBAL_TS_OFFSET).toString();
+        const sigFut = await hmacHex(ts2 + c.key + recv + qFut, c.secret);
+        const h2 = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-TIMESTAMP': ts2, 'X-BAPI-SIGN': sigFut, 'X-BAPI-RECV-WINDOW': recv };
+        const r2 = await apiFetch('https://api.bybit.com/v5/account/wallet-balance?' + qFut, { method: 'GET', headers: h2 });
+        let fut = 0;
+        if (r2) { const d2 = await r2.json(); if (d2.retCode === 0) { const c2 = d2.result?.list?.[0]?.coin || []; const u2 = c2.find(x => x.coin === 'USDT'); fut = parseFloat(u2?.walletBalance || 0); } }
+        return { spot, futures: fut };
+      } catch (e) { return { error: 'Bybit: ' + e.message } }
+    }
+    async function balOKX(c) {
+      // OKX V5 — HMAC-SHA256-Base64(ts + 'GET' + path, secret)
+      if (!c.passphrase) return { error: 'OKX: Passphrase obrigatória' };
+      try {
+        const ts = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const path = '/api/v5/asset/balances?ccy=USDT';
+        const sig = await hmacB64(ts + 'GET' + path, c.secret);
+        const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+        const r = await apiFetch('https://www.okx.com' + path, { method: 'GET', headers: h });
+        if (!r) return { error: 'OKX: sem resposta' };
+        const d = await r.json();
+        if (d.code !== '0') return { error: 'OKX: ' + (d.msg || 'code ' + d.code) };
+        const spot = parseFloat(d.data?.[0]?.availBal || 0);
+        // Futures (trading account)
+        const path2 = '/api/v5/account/balance?ccy=USDT';
+        const ts2 = new Date(Date.now() + GLOBAL_TS_OFFSET).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const sig2 = await hmacB64(ts2 + 'GET' + path2, c.secret);
+        const h2 = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig2, 'OK-ACCESS-TIMESTAMP': ts2, 'OK-ACCESS-PASSPHRASE': c.passphrase };
+        const r2 = await apiFetch('https://www.okx.com' + path2, { method: 'GET', headers: h2 });
+        let fut = 0;
+        if (r2) { const d2 = await r2.json(); if (d2.code === '0') { const det = d2.data?.[0]?.details || []; const u2 = det.find(x => x.ccy === 'USDT'); fut = parseFloat(u2?.availBal || 0); } }
+        return { spot, futures: fut };
+      } catch (e) { return { error: 'OKX: ' + e.message } }
+    }
+    async function balLBank(c) {
+      // LBank V2 — HMAC-SHA256, params sorted alphabetically
+      try {
+        const ts = Date.now().toString();
+        const params = { api_key: c.key, sign_type: 'HmacSHA256', time: ts };
+        const sorted = Object.keys(params).sort().map(k => k + '=' + params[k]).join('&');
+        const sig = await hmacHex(sorted, c.secret);
+        const body = sorted + '&sign=' + sig;
+        const r = await apiFetch('https://api.lbkex.com/v2/user_info.do', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const d = await r.json();
+        if (d.result !== 'true' && d.result !== true) return { error: 'LBank: ' + (d.error_code || JSON.stringify(d).slice(0, 60)) };
+        const spot = parseFloat(d.data?.info?.free?.USDT || 0);
+        return { spot, futures: 0 };
+      } catch (e) { return { error: 'LBank: ' + e.message } }
+    }
+    async function balBitget(c) {
+      // Bitget V2 — HMAC-SHA256-Base64, passphrase obrigatória
+      if (!c.passphrase) return { error: 'Bitget: Passphrase obrigatória' };
+      try {
+        const ts = Date.now().toString();
+        const path = '/api/v2/spot/account/assets?coin=USDT';
+        const sig = await hmacB64(ts + 'GET' + path + '', c.secret);
+        const h = { 'ACCESS-KEY': c.key, 'ACCESS-SIGN': sig, 'ACCESS-TIMESTAMP': ts, 'ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' };
+        const r = await apiFetch('https://api.bitget.com' + path, { method: 'GET', headers: h });
+        const d = await r.json();
+        if (d.code !== '00000') return { error: 'Bitget: ' + (d.msg || 'code ' + d.code) };
+        const entry = (d.data || []).find(x => x.coin === 'USDT' || x.coinName === 'USDT');
+        const spot = parseFloat(entry?.available || 0);
+        return { spot, futures: 0 };
+      } catch (e) { return { error: 'Bitget: ' + e.message } }
+    }
     // ════════════════════════════════════════════════════════
     // PLACE REAL ORDERS
     // ════════════════════════════════════════════════════════
@@ -3706,7 +3878,11 @@
       if (exl === 'mexc') return placeOrderMEXC(c, symbol, side, qty, price, isSpot);
       if (exl === 'gate') return placeOrderGate(c, symbol, side, qty, price, isSpot);
       if (exl === 'kucoin') return placeOrderKuCoin(c, symbol, side, qty, price, isSpot);
-      throw new Error('Exchange desconhecida');
+      if (exl === 'bybit') return placeOrderBybit(c, symbol, side, qty, price, isSpot);
+      if (exl === 'okx') return placeOrderOKX(c, symbol, side, qty, price, isSpot);
+      if (exl === 'lbank' || exl === 'bitget') throw new Error(exch + ': execução de ordens não suportada. Use BingX, MEXC, Gate, KuCoin, Bybit ou OKX.');
+      if (exl === 'binance') throw new Error('Binance: bloqueada no servidor (CloudFront 403). Use outra exchange.');
+      throw new Error('Exchange desconhecida: ' + exch);
     }
 
     async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
@@ -3799,6 +3975,45 @@
         return { orderId: d.data?.orderId, exchange: 'KuCoin', symbol: sym, side, qty, price };
       } catch (e) { throw new Error('KuCoin ordem: ' + e.message) }
     }
+    async function placeOrderBybit(c, sym, side, qty, price, isSpot) {
+      // Bybit V5 — HMAC-SHA256(ts+apiKey+recvWindow+bodyStr, secret)
+      const ts = Date.now().toString();
+      const recv = '5000';
+      const sf = sym.replace('/', '').replace('_', '');
+      const bodyObj = isSpot
+        ? { category: 'spot', symbol: sf, side: side === 'buy' ? 'Buy' : 'Sell', orderType: price ? 'Limit' : 'Market', qty: String(qty), price: String(price), timeInForce: 'GTC' }
+        : { category: 'linear', symbol: sf, side: side === 'buy' ? 'Buy' : 'Sell', orderType: price ? 'Limit' : 'Market', qty: String(qty), price: String(price), timeInForce: 'GTC', positionIdx: 0 };
+      const bodyStr = JSON.stringify(bodyObj);
+      const sig = await hmacHex(ts + c.key + recv + bodyStr, c.secret);
+      const h = { 'X-BAPI-API-KEY': c.key, 'X-BAPI-SIGN': sig, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': recv, 'Content-Type': 'application/json' };
+      try {
+        const r = await apiFetch('https://api.bybit.com/v5/order/create', { method: 'POST', headers: h, body: bodyStr });
+        const d = await r.json();
+        if (d.retCode !== 0) throw new Error('Bybit: ' + (d.retMsg || 'code ' + d.retCode));
+        return { orderId: d.result?.orderId, exchange: 'Bybit', symbol: sym, side, qty, price };
+      } catch (e) { throw new Error('Bybit ordem: ' + e.message) }
+    }
+    async function placeOrderOKX(c, sym, side, qty, price, isSpot) {
+      // OKX V5 — HMAC-SHA256-Base64(ts+'POST'+path+bodyStr, secret)
+      if (!c.passphrase) throw new Error('OKX: Passphrase obrigatória');
+      const ts = new Date(Date.now() + (GLOBAL_TS_OFFSET || 0)).toISOString().replace(/\.\d{3}Z$/, '.000Z');
+      const sf = sym.replace('/', '-');
+      const path = '/api/v5/trade/order';
+      const tdMode = isSpot ? 'cash' : 'cross';
+      const bodyObj = { instId: sf, tdMode, side: side.toLowerCase(), ordType: price ? 'limit' : 'market', sz: String(qty) };
+      if (price) bodyObj.px = String(price);
+      const bodyStr = JSON.stringify(bodyObj);
+      const sig = await hmacB64(ts + 'POST' + path + bodyStr, c.secret);
+      const h = { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' };
+      try {
+        const r = await apiFetch('https://www.okx.com' + path, { method: 'POST', headers: h, body: bodyStr });
+        const d = await r.json();
+        if (d.code !== '0') throw new Error('OKX: ' + (d.msg || 'code ' + d.code));
+        const ord = d.data?.[0];
+        if (ord?.sCode !== '0') throw new Error('OKX: ' + (ord?.sMsg || 'order error'));
+        return { orderId: ord.ordId, exchange: 'OKX', symbol: sym, side, qty, price };
+      } catch (e) { throw new Error('OKX ordem: ' + e.message) }
+    }
     async function testApi(exch) {
       const s = lsGet('keys_' + exch);
       if (!s || !s.key) { notify('⚠ Salve a key do ' + exch + ' primeiro', 'w'); return }
@@ -3812,8 +4027,8 @@
     function setApiSt(exl, state, txt) {
       const dot = document.getElementById(exl + '-dot');
       const stat = document.getElementById(exl + '-status');
-      if (dot) { dot.className = 'asd'; if (state === 'on') dot.classList.add('asd-on'); else if (state === 'err') dot.classList.add('asd-err'); else if (state === 'loading') dot.classList.add('asd-loading') }
-      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--g)' : state === 'err' ? 'var(--r)' : 'var(--y)' }
+      if (dot) { dot.className = 'api-status-dot'; if (state === 'on') dot.classList.add('on'); else if (state === 'err') dot.classList.add('err'); else if (state === 'loading') dot.classList.add('loading'); else dot.classList.add('off') }
+      if (stat) { stat.textContent = txt; stat.style.color = state === 'on' ? 'var(--green)' : state === 'err' ? 'var(--red)' : state === 'loading' ? 'var(--yellow)' : 'var(--dim)' }
     }
     function setBalDsp(exl, spot, fut, state) {
       const bs = document.getElementById(exl + '-bal-s'), bf = document.getElementById(exl + '-bal-f');
@@ -4130,15 +4345,15 @@
     }
 
     function renderOB(mid, liq) {
-      const asks = [], bids = []; let al = 0, bl = 0;
+      const asks = [], bids = [];
       const prec = mid > 1000 ? 1 : 4;
-      for (let i = 5; i > 0; i--) { const p = mid * (1 + i * .0003); const q = +(0.5 + Math.random() * 8).toFixed(3); asks.push([p, q, p * q]); al += p * q }
-      for (let i = 1; i <= 5; i++) { const p = mid * (1 - i * .0003); const q = +(0.5 + Math.random() * 8).toFixed(3); bids.push([p, q, p * q]); bl += p * q }
-      const ma = Math.max(...asks.map(a => a[2])), mb = Math.max(...bids.map(b => b[2]));
-      document.getElementById('obAsks').innerHTML = asks.map(a => `<div class="oblv"><div class="obbar obba" style="width:${Math.round(a[2] / ma * 100)}%"></div><span class="obpa">${fmtP(a[0], prec)}</span><span class="obq">${a[1]}</span></div>`).join('');
-      document.getElementById('obBids').innerHTML = bids.map(b => `<div class="oblv"><div class="obbar obbb" style="width:${Math.round(b[2] / mb * 100)}%"></div><span class="obpb">${fmtP(b[0], prec)}</span><span class="obq">${b[1]}</span></div>`).join('');
+      for (let i = 5; i > 0; i--) { asks.push(mid * (1 + i * .0003)); }
+      for (let i = 1; i <= 5; i++) { bids.push(mid * (1 - i * .0003)); }
+      document.getElementById('obAsks').innerHTML = asks.map(p => `<div class="oblv"><span class="obpa">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
+      document.getElementById('obBids').innerHTML = bids.map(p => `<div class="oblv"><span class="obpb">${fmtP(p, prec)}</span><span class="obq">—</span></div>`).join('');
       (function () { var __t = document.getElementById('obSpD'); if (__t) __t.textContent = '$' + (mid * .0006).toFixed(mid > 1000 ? 2 : 6); })();
-      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(al); })(); (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '$' + fmt(bl); })();
+      (function () { var __t = document.getElementById('obLB'); if (__t) __t.textContent = '$' + fmt(liq); })();
+      (function () { var __t = document.getElementById('obLS'); if (__t) __t.textContent = '—'; })();
     }
 
     function renderPos() {
@@ -4219,6 +4434,7 @@
     // ARB EXECUTION
     // ════════════════════════════════════════════════════════
     function doArb() {
+      if (arbInProgress) { notify('⏳ Aguarde — execução em andamento...', 'w'); return; }
       const r = filteredRows[selIdx]; if (!r) { notify('Selecione um par', 'w'); return }
       const usdt = getOrderUSDT(); if (usdt <= 0) { notify('⚠ Defina a quantidade', 'w'); return }
       const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
@@ -4243,29 +4459,53 @@
       closeM();
       const r = filteredRows[selIdx]; if (!r) return;
       const bex = document.getElementById('buyEx').value, sex = document.getElementById('sellEx').value;
-      const buyP = parseFloat(document.getElementById('lBuy').value) || r.buyAt;
-      const sellP = parseFloat(document.getElementById('lSell').value) || r.sellAt;
+      const buyPraw = parseFloat(document.getElementById('lBuy').value);
+      const sellPraw = parseFloat(document.getElementById('lSell').value);
+      const buyP = (!buyPraw || isNaN(buyPraw) || buyPraw <= 0) ? r.buyAt : buyPraw;
+      const sellP = (!sellPraw || isNaN(sellPraw) || sellPraw <= 0) ? r.sellAt : sellPraw;
+      if (!buyP || buyP <= 0 || !sellP || sellP <= 0) { notify('⚠ Preços inválidos', 'w'); return; }
       const usdt = getOrderUSDT(), token = getOrderToken();
+      if (!token || token <= 0) { notify('⚠ Quantidade inválida', 'w'); return; }
       const mode = document.getElementById('arbMode').value;
       const isSpotBuy = mode === 'SS' || mode === 'SF';
       const isSpotSell = mode === 'SS' || mode === 'FS';
       const hasBuyKey = !!lsGet('keys_' + bex.toLowerCase());
       const hasSellKey = !!lsGet('keys_' + sex.toLowerCase());
       if (!hasBuyKey || !hasSellKey) {
-        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), ' w');
+        notify('⚠ Configure as keys de ' + ((!hasBuyKey) ? bex : sex), 'w');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled'); return;
       }
+      arbInProgress = true;
       notify('⚡ Enviando ARB ' + r.sym + '...', '');
       try {
-        const [buyRes, sellRes] = await Promise.all([
-          placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy),
-          placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell)
-        ]);
-        notify('✓ ARB executado! BUY #' + buyRes.orderId + ' | SELL #' + sellRes.orderId, 'g');
+        // Executa sequencialmente para permitir rollback
+        let buyRes;
+        try {
+          buyRes = await placeRealOrder(bex, r.sym, 'buy', token, buyP, isSpotBuy);
+        } catch (buyErr) {
+          notify('✗ BUY falhou (' + bex + '): ' + errMsg(buyErr), 'e');
+          registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+          return;
+        }
+        let sellRes;
+        try {
+          sellRes = await placeRealOrder(sex, r.sym, 'sell', token, sellP, isSpotSell);
+        } catch (sellErr) {
+          notify('✗ SELL falhou (' + sex + '): ' + errMsg(sellErr) + ' — revertendo BUY...', 'e');
+          // Rollback: tenta vender o que comprou a mercado
+          try {
+            await placeRealOrder(bex, r.sym, 'sell', token, buyP * 0.999, isSpotBuy);
+            notify('↩ Rollback BUY executado (' + bex + ')', 'w');
+          } catch (rbErr) {
+            notify('⚠ ROLLBACK FALHOU em ' + bex + ': ' + errMsg(rbErr) + ' — VERIFIQUE MANUALMENTE', 'e');
+          }
+          registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+          return;
+        }
+        notify('✓ ARB executado! BUY #' + (buyRes.orderId || '?') + ' | SELL #' + (sellRes.orderId || '?'), 'g');
         registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'open', buyRes.orderId, sellRes.orderId);
-      } catch (err) {
-        notify('✗ Falha: ' + errMsg(err), 'e');
-        registerTrade(r, bex, sex, buyP, sellP, usdt, token, mode, 'cancelled');
+      } finally {
+        arbInProgress = false;
       }
     }
 
@@ -4349,10 +4589,11 @@
     function refresh() { genRows(); applyF(); notify('↺ Scanner atualizado', '') }
 
     async function live() {
+      const _t0 = Date.now();
       await refreshQuotes();
       genRows();
       applyF();
-      (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (1 + Math.floor(Math.random() * 8)) + 'ms'; })();
+      (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (Date.now() - _t0) + 'ms'; })();
       if (filteredRows[selIdx]) renderOB(filteredRows[selIdx].buyAt, filteredRows[selIdx].liq || 0);
       if (positions.length) renderPos();
       updateBalPanel(); renderOverview();
@@ -4389,9 +4630,10 @@
           return { bid: parseFloat(d.bidPrice || 0), ask: parseFloat(d.askPrice || 0), bidQty: parseFloat(d.bidQty || 0), askQty: parseFloat(d.askQty || 0) };
         }
         if (ex === 'KuCoin') {
-          // KuCoin bloqueia IPs de cloud (Oracle) — busca direto do browser (suporta CORS público)
-          const r = await fetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { signal: AbortSignal.timeout(8000) });
-          if (!r.ok) return null; const d = await r.json();
+          // KuCoin removeu CORS público — rota pelo proxy como as demais exchanges
+          // Se Oracle Cloud estiver bloqueado pela KuCoin, retorna null silenciosamente
+          const r = await apiFetch('https://api.kucoin.com/api/v1/market/stats?symbol=' + s, { method: 'GET' }, true);
+          if (!r || !r.ok) return null; const d = await r.json();
           if (d.code !== '200000') return null;
           const data = d.data || {};
           return { bid: parseFloat(data.buy || 0), ask: parseFloat(data.sell || 0), bidQty: 0, askQty: 0 };
@@ -4454,12 +4696,15 @@
         // Busca todas as exchanges em paralelo (cada exchange busca seus pares sequencialmente)
         await Promise.all(EXCHS.map(async ex => {
           if (!QUOTES[ex]) QUOTES[ex] = {};
+          let ok = 0;
           for (const sym of PAIRS) {
             const q = await fetchQuote(ex, sym);
             if (q && q.ask > 0 && q.bid > 0) {
               QUOTES[ex][sym] = { ...q, ts: now };
+              ok++;
             }
           }
+          updateLed(ex.toLowerCase(), ok > 0 ? 'on' : 'err');
         }));
       });
     }

@@ -1,0 +1,1004 @@
+  2500→    ::-webkit-scrollbar {
+  2501→      width: 2px;
+  2502→      height: 2px
+  2503→    }
+  2504→
+  2505→    ::-webkit-scrollbar-track {
+  2506→      background: transparent
+  2507→    }
+  2508→
+  2509→    ::-webkit-scrollbar-thumb {
+  2510→      background: var(--border2);
+  2511→      border-radius: 1px
+  2512→    }
+  2513→  </style>
+  2514→</head>
+  2515→
+  2516→<body>
+  2517→
+  2518→  <!-- ══ TOP BAR ══ -->
+  2519→  <div id="topbar">
+  2520→    <div style="display:flex;align-items:center;gap:10px">
+  2521→      <div class="logo">ARB<span>·HFT</span></div>
+  2522→      <div class="leds">
+  2523→        <div class="led">
+  2524→          <div class="ld ld-off" id="ld-bingx"></div>BingX
+  2525→        </div>
+  2526→        <div class="led">
+  2527→          <div class="ld ld-off" id="ld-mexc"></div>MEXC
+  2528→        </div>
+  2529→        <div class="led">
+  2530→          <div class="ld ld-off" id="ld-gate"></div>Gate
+  2531→        </div>
+  2532→        <div class="led">
+  2533→          <div class="ld ld-off" id="ld-kucoin"></div>KuCoin
+  2534→        </div>
+  2535→        <div class="led">
+  2536→          <div class="ld ld-off" id="ld-bybit"></div>Bybit
+  2537→        </div>
+  2538→        <div class="led">
+  2539→          <div class="ld ld-off" id="ld-okx"></div>OKX
+  2540→        </div>
+  2541→        <div class="led">
+  2542→          <div class="ld ld-off" id="ld-lbank"></div>LBank
+  2543→        </div>
+  2544→        <div class="led">
+  2545→          <div class="ld ld-off" id="ld-bitget"></div>Bitget
+  2546→        </div>
+  2547→      </div>
+  2548→      <div style="display:flex;align-items:center;gap:4px">
+  2549→        <div id="proxy-led" style="width:6px;height:6px;border-radius:50%;background:#334;flex-shrink:0" title="Status do proxy"></div>
+  2550→        <input id="proxy-input" type="text" placeholder="https://xxx.trycloudflare.com"
+  2551→          style="width:210px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:9px;padding:2px 6px;border-radius:3px;outline:none"
+  2552→          onkeydown="if(event.key==='Enter')applyProxy()" title="URL do proxy HTTPS (Cloudflare tunnel)">
+  2553→        <button onclick="applyProxy()" class="btn" style="background:var(--bd1);color:var(--blue);border:1px solid var(--border2);padding:2px 6px;font-weight:600">SET</button>
+  2554→      </div>
+  2555→    </div>
+  2556→    <div class="stats">
+  2557→      <div class="pill">WS <b id="wsLat">—</b></div>
+  2558→      <div class="pill y">Opps <b id="oppCnt">0</b></div>
+  2559→      <div class="pill g">PnL Total <b id="totalPnl">$0.00</b></div>
+  2560→      <div class="pill c">Posições <b id="posCount">0</b></div>
+  2561→      <div class="pill p">Win Rate <b id="winRate">—</b></div>
+  2562→      <div class="pill r">Perda/dia <b id="dailyLoss">$0.00</b></div>
+  2563→      <div class="sdot"></div>
+  2564→      <span style="font-size:8px;color:var(--green);font-weight:700">LIVE</span>
+  2565→    </div>
+  2566→    <div class="tbts">
+  2567→      <button class="btn btn-pk" onclick="openExit()">🔴 SAÍDA RÁPIDA</button>
+  2568→      <button class="btn btn-pau" onclick="stopBot()">⏹ STOP</button>
+  2569→      <button class="btn btn-go" onclick="startBot()">▶ START</button>
+  2570→    </div>
+  2571→  </div>
+  2572→
+  2573→  <!-- ══ GLOBAL TABS ══ -->
+  2574→  <div id="gtabs">
+  2575→    <div class="gtab on" onclick="switchPage('scanner',this)">📊 Scanner <span class="gbadge" id="scanBadge">0</span>
+  2576→    </div>
+  2577→    <div class="gtab" onclick="switchPage('results',this)">📈 Resultados & Ordens <span class="gbadge gbadge-c"
+  2578→        id="ordBadge">0</span></div>
+  2579→    <div class="gtab" onclick="switchPage('api',this)">🔑 API Keys</div>
+  2580→  </div>
+  2581→
+  2582→  <!-- ══════════════════════════════════════
+  2583→     PAGE: SCANNER
+  2584→══════════════════════════════════════════ -->
+  2585→  <div id="pgScanner" class="page on">
+  2586→
+  2587→    <!-- COL A -->
+  2588→    <div id="colA">
+  2589→      <div class="col-hd">
+  2590→        <div class="col-hd-t">📊 Ativos / Spread</div>
+  2591→        <div class="frow">
+  2592→          <div class="ftag on" onclick="apf('all',this)">Todos</div>
+  2593→          <div class="ftag" onclick="apf('SS',this)">SS</div>
+  2594→          <div class="ftag" onclick="apf('SF',this)">SF</div>
+  2595→          <div class="ftag" onclick="apf('FF',this)">FF</div>
+  2596→        </div>
+  2597→        <input class="fsrch" id="apSrch" type="text" placeholder="🔍 buscar..." oninput="applyF()">
+  2598→      </div>
+  2599→      <div class="alist" id="alist"></div>
+  2600→      <div class="col-ft">
+  2601→        <span>min: <b id="minSV">0.3%</b></span>
+  2602→        <span><b id="listCt">20</b> pares</span>
+  2603→      </div>
+  2604→    </div>
+  2605→
+  2606→    <!-- COL B -->
+  2607→    <div id="colB">
+  2608→      <div id="ph">
+  2609→        <div class="ph-r1">
+  2610→          <span class="ph-sym" id="phSym">BTC/USDT</span>
+  2611→          <div class="ph-tags">
+  2612→            <span class="at tsf" id="phType">SF</span>
+  2613→            <span class="ph-sp" id="phSp">0.87%</span>
+  2614→            <span class="ph-net" id="phNet">+0.72%</span>
+  2615→          </div>
+  2616→        </div>
+  2617→        <div class="ph-route">BUY <b id="phBE">BingX</b> → SELL <b id="phSE">MEXC</b></div>
+  2618→      </div>
+  2619→      <div id="ob-split">
+  2620→        <div class="ob-col">
+  2621→          <div class="ob-col-hd"><span class="ob-exch" id="obBE">BingX</span><span class="ob-ta">ASKs</span></div>
+  2622→          <div id="obAsks"></div>
+  2623→        </div>
+  2624→        <div class="ob-col">
+  2625→          <div class="ob-col-hd"><span class="ob-exch" id="obSE">MEXC</span><span class="ob-tb">BIDs</span></div>
+  2626→          <div id="obBids"></div>
+  2627→        </div>
+  2628→      </div>
+  2629→      <div class="ob-mid">
+  2630→        <div class="ob-mi">Spread: <b id="obSpD">$142</b></div>
+  2631→        <div class="ob-mi">Liq BUY: <bx id="obLB">$284K</bx>
+  2632→        </div>
+  2633→        <div class="ob-mi">Liq SELL: <bx id="obLS">$196K</bx>
+  2634→        </div>
+  2635→      </div>
+  2636→      <!-- Quick exit -->
+  2637→      <div id="qe">
+  2638→        <div class="qe-hd">
+  2639→          <span class="qe-t">⚡ Saída Rápida</span>
+  2640→          <span class="qe-p" id="qePair">BTC/USDT</span>
+  2641→        </div>
+  2642→        <div class="qe-g1">
+  2643→          <button class="qe-btn qb-b" onclick="qClose('buy')">✕ FECHAR BUY<br><span
+  2644→              style="font-size:7px">MARKET</span></button>
+  2645→          <button class="qe-btn qb-a" onclick="qClose('both')">✕✕ FECHAR TUDO<br><span
+  2646→              style="font-size:7px">MARKET</span></button>
+  2647→          <button class="qe-btn qb-s" onclick="qClose('sell')">✕ FECHAR SELL<br><span
+  2648→              style="font-size:7px">MARKET</span></button>
+  2649→        </div>
+  2650→        <div class="qe-g2">
+  2651→          <div class="qpct" onclick="setPct(25,this)">25%</div>
+  2652→          <div class="qpct" onclick="setPct(50,this)">50%</div>
+  2653→          <div class="qpct" onclick="setPct(75,this)">75%</div>
+  2654→          <div class="qpct on" onclick="setPct(100,this)">100%</div>
+  2655→        </div>
+  2656→      </div>
+  2657→      <!-- Trade entry -->
+  2658→      <div id="te">
+  2659→        <div class="te-r"><span class="te-l">BUY Exch.</span><select class="te-i" id="buyEx" onchange="onExchChange()">
+  2660→            <option>BingX</option>
+  2661→            <option>MEXC</option>
+  2662→            <option>Gate</option>
+  2663→            <option>KuCoin</option>
+  2664→            <option>Binance</option>
+  2665→            <option>Bybit</option>
+  2666→            <option>OKX</option>
+  2667→            <option>LBank</option>
+  2668→            <option>Bitget</option>
+  2669→          </select></div>
+  2670→        <div class="te-r"><span class="te-l">SELL Exch.</span><select class="te-i" id="sellEx"
+  2671→            onchange="onExchChange()">
+  2672→            <option>MEXC</option>
+  2673→            <option>BingX</option>
+  2674→            <option>Gate</option>
+  2675→            <option>KuCoin</option>
+  2676→            <option>Binance</option>
+  2677→            <option>Bybit</option>
+  2678→            <option>OKX</option>
+  2679→            <option>LBank</option>
+  2680→            <option>Bitget</option>
+  2681→          </select></div>
+  2682→        <div class="te-r"><span class="te-l">Tipo</span><select class="te-i" id="ordType">
+  2683→            <option>LIMIT</option>
+  2684→            <option>MARKET</option>
+  2685→          </select></div>
+  2686→
+  2687→        <div class="te-r"><span class="te-l">Modo ARB</span><select class="te-i" id="arbMode"
+  2688→            onchange="updateBalPanel()">
+  2689→            <option value="SS">SS Spot/Spot</option>
+  2690→            <option value="SF">SF Spot/Fut</option>
+  2691→            <option value="FS">FS Fut/Spot</option>
+  2692→            <option value="FF">FF Fut/Fut</option>
+  2693→          </select></div>
+  2694→
+  2695→        <!-- BALANCE PANEL -->
+  2696→        <div class="bal-panel" id="balPanel">
+  2697→          <div class="bal-row">
+  2698→            <div class="bal-cell">
+  2699→              <div class="bal-exch-name"><span id="balBuyName">BingX</span><span class="bal-exch-type"
+  2700→                  id="balBuyType">SPOT</span></div>
+  2701→              <div class="bal-avail" id="balBuyUsdt">$2,341.50</div>
+  2702→              <div class="bal-asset-qty" id="balBuyAsset">≈ 0.0534 BTC disp.</div>
+  2703→              <button class="bal-use-btn" onclick="useMaxBuy()">USAR SALDO ↑</button>
+  2704→            </div>
+  2705→            <div class="bal-cell">
+  2706→              <div class="bal-exch-name"><span id="balSellName">MEXC</span><span class="bal-exch-type"
+  2707→                  id="balSellType">FUTURES</span></div>
+  2708→              <div class="bal-avail" id="balSellUsdt">$1,920.00</div>
+  2709→              <div class="bal-asset-qty" id="balSellAsset">≈ 0.0438 BTC disp.</div>
+  2710→              <button class="bal-use-btn" onclick="useMaxSell()">USAR SALDO ↑</button>
+  2711→            </div>
+  2712→          </div>
+  2713→        </div>
+  2714→
+  2715→        <!-- QTY SELECTOR -->
+  2716→        <div class="qty-section">
+  2717→          <div class="qty-head">
+  2718→            <span class="qty-head-label">💰 Quantidade</span>
+  2719→            <span style="font-size:8px;color:var(--tdim)">limitado ao menor saldo</span>
+  2720→          </div>
+  2721→          <div class="qty-pct-grid">
+  2722→            <div class="qpb" onclick="setQtyPct(10,this)">10%</div>
+  2723→            <div class="qpb" onclick="setQtyPct(25,this)">25%</div>
+  2724→            <div class="qpb" onclick="setQtyPct(50,this)">50%</div>
+  2725→            <div class="qpb" onclick="setQtyPct(75,this)">75%</div>
+  2726→            <div class="qpb on" onclick="setQtyPct(100,this)">MAX</div>
+  2727→          </div>
+  2728→          <div class="qty-custom-row">
+  2729→            <input class="qty-custom-inp" type="number" id="qty" placeholder="USDT..." step="10" oninput="onQtyInput()">
+  2730→            <button class="qty-max-btn" onclick="setQtyPct(100,null)">⬆ MAX</button>
+  2731→          </div>
+  2732→          <div class="qty-result-bar">
+  2733→            <div class="qty-res-card">
+  2734→              <div class="qty-res-label">USDT total</div>
+  2735→              <div class="qty-res-val" id="qtyResUsdt" style="color:var(--cyan)">$500</div>
+  2736→            </div>
+  2737→            <div class="qty-res-card">
+  2738→              <div class="qty-res-label">Qtd ativo</div>
+  2739→              <div class="qty-res-val" id="qtyResAsset" style="color:var(--yellow)">0.0114 BTC</div>
+  2740→            </div>
+  2741→          </div>
+  2742→          <div class="qty-insuf" id="qtyInsuf">⚠ Saldo insuficiente em uma das exchanges</div>
+  2743→        </div>
+  2744→
+  2745→        <div class="te-2c">
+  2746→          <div class="te-f"><span class="te-fl">LIMIT BUY</span><input type="number" id="lBuy" value="43821.50"
+  2747→              step="0.01"></div>
+  2748→          <div class="te-f"><span class="te-fl">LIMIT SELL</span><input type="number" id="lSell" value="44203.70"
+  2749→              step="0.01"></div>
+  2750→        </div>
+  2751→        <div class="te-a2">
+  2752→          <button class="b-buy" onclick="placeLeg('buy')">▲ L.BUY</button>
+  2753→          <button class="b-sell" onclick="placeLeg('sell')">▼ L.SELL</button>
+  2754→        </div>
+  2755→        <button class="b-arb" onclick="doArb()">⚡ ARB SIMULTÂNEO</button>
+  2756→        <div class="divr"></div>
+  2757→        <div class="calc">
+  2758→          <div class="cr"><span class="ck">Spread bruto</span><span class="cv" style="color:var(--yellow)"
+  2759→              id="cSp">+0.870%</span></div>
+  2760→          <div class="cr"><span class="ck">Taxa BUY</span><span class="cv" style="color:var(--red)"
+  2761→              id="cF1">-0.075%</span></div>
+  2762→          <div class="cr"><span class="ck">Taxa SELL</span><span class="cv" style="color:var(--red)"
+  2763→              id="cF2">-0.020%</span></div>
+  2764→          <div class="cr"><span class="ck">Funding</span><span class="cv" style="color:var(--red)"
+  2765→              id="cFr">-0.010%</span></div>
+  2766→          <div class="cr"><span class="ck">Slippage</span><span class="cv" style="color:var(--red)"
+  2767→              id="cSl">-0.050%</span></div>
+  2768→          <div style="border-top:1px solid var(--border);margin-top:3px;padding-top:3px">
+  2769→            <div class="cr"><span class="ck" style="font-weight:700;color:var(--text)">Lucro líq.</span><span id="cNet"
+  2770→                style="font-weight:700;color:var(--green)">+0.715%</span></div>
+  2771→            <div class="cr"><span class="ck">Em USDT</span><span id="cUsd"
+  2772→                style="font-weight:700;color:var(--green)">+$3.58</span></div>
+  2773→          </div>
+  2774→        </div>
+  2775→      </div>
+  2776→    </div>
+  2777→
+  2778→    <!-- COL C -->
+  2779→    <div id="colC">
+  2780→      <div class="sc-top">
+  2781→        <span class="fl">TIPO:</span>
+  2782→        <select class="fs" id="fType" onchange="applyF()">
+  2783→          <option value="all">Todos</option>
+  2784→          <option value="SS">SS</option>
+  2785→          <option value="SF">SF</option>
+  2786→          <option value="FF">FF</option>
+  2787→        </select>
+  2788→        <span class="fl">SPREAD≥</span>
+  2789→        <input class="fi" type="number" id="fSp" value="0.3" step="0.1" style="width:40px" onchange="applyF()">
+  2790→        <span class="fl">% LIQ≥</span>
+  2791→        <input class="fi" type="number" id="fLiq" value="50000" step="10000" style="width:62px" onchange="applyF()">
+  2792→        <span class="fl">EXCH:</span>
+  2793→        <select class="fs" id="fEx" onchange="applyF()">
+  2794→          <option value="all">Todas</option>
+  2795→          <option>BingX</option>
+  2796→          <option>MEXC</option>
+  2797→          <option>Gate</option>
+  2798→          <option>KuCoin</option>
+  2799→          <option>Binance</option>
+  2800→          <option>Bybit</option>
+  2801→          <option>OKX</option>
+  2802→          <option>LBank</option>
+  2803→          <option>Bitget</option>
+  2804→        </select>
+  2805→        <input class="fi" type="text" id="fSym" placeholder="BTC..." style="width:48px" oninput="applyF()">
+  2806→        <button class="btn-sm" onclick="sortSp()">↓Spread</button>
+  2807→        <button class="btn-sm" onclick="refresh()">↺</button>
+  2808→      </div>
+  2809→      <div class="sc-body">
+  2810→        <!-- Positions strip -->
+  2811→        <div id="pstrip">
+  2812→          <div class="ps-hd">
+  2813→            <span class="ps-t">📋 Posições Abertas <span id="psCt" style="color:var(--cyan);font-size:8px">3
+  2814→                ativas</span></span>
+  2815→            <div class="ps-acts">
+  2816→              <button class="b-ca" onclick="cancelAll()">✕ Cancelar Ordens</button>
+  2817→              <button class="b-cla" onclick="openExit()">🔴 Fechar Todas</button>
+  2818→            </div>
+  2819→          </div>
+  2820→          <div class="pt-wrap">
+  2821→            <table class="pt">
+  2822→              <thead>
+  2823→                <tr>
+  2824→                  <th>PAR</th>
+  2825→                  <th>TIPO</th>
+  2826→                  <th>LADO</th>
+  2827→                  <th>ENTRADA</th>
+  2828→                  <th>ATUAL</th>
+  2829→                  <th>QTD</th>
+  2830→                  <th>PnL $</th>
+  2831→                  <th>PnL %</th>
+  2832→                  <th>BUY</th>
+  2833→                  <th>SELL</th>
+  2834→                  <th>AÇÕES</th>
+  2835→                </tr>
+  2836→              </thead>
+  2837→              <tbody id="ptBody"></tbody>
+  2838→            </table>
+  2839→          </div>
+  2840→        </div>
+  2841→        <!-- Scanner -->
+  2842→        <div class="sc-hd">
+  2843→          <span>#</span><span>PAR</span><span>TIPO</span><span>EXCHANGES</span><span>SPREAD</span><span>BUY@</span><span>SELL@</span><span>FUND.</span><span>LIQ</span><span>NET%</span><span>AÇÕES</span>
+  2844→        </div>
+  2845→        <div class="sc-inner" id="scBody"></div>
+  2846→      </div>
+  2847→    </div>
+  2848→  </div>
+  2849→
+  2850→  <!-- ══════════════════════════════════════
+  2851→     PAGE: RESULTS & ORDERS
+  2852→══════════════════════════════════════════ -->
+  2853→  <div id="pgResults" class="page">
+  2854→    <!-- Sub-tabs -->
+  2855→    <div class="res-top">
+  2856→      <div class="res-tab on" onclick="switchRes('overview',this)">📊 Visão Geral</div>
+  2857→      <div class="res-tab" onclick="switchRes('orders',this)">📋 Histórico de Ordens</div>
+  2858→      <div class="res-tab" onclick="switchRes('daily',this)">📅 Resumo Diário</div>
+  2859→    </div>
+  2860→    <div class="res-body">
+  2861→
+  2862→      <!-- OVERVIEW -->
+  2863→      <div id="res-overview" class="res-subpage on">
+  2864→        <div class="res-banner" id="resBanner"></div>
+  2865→        <div class="res-chart-row" id="resCharts"></div>
+  2866→      </div>
+  2867→
+  2868→      <!-- ORDERS HISTORY -->
+  2869→      <div id="res-orders" class="res-subpage">
+  2870→        <div class="ord-filter">
+  2871→          <span class="fl">STATUS:</span>
+  2872→          <select class="fs" id="ordStatus" onchange="renderOrders()">
+  2873→            <option value="all">Todos</option>
+  2874→            <option value="closed">Fechado</option>
+  2875→            <option value="open">Aberto</option>
+  2876→            <option value="cancelled">Cancelado</option>
+  2877→          </select>
+  2878→          <span class="fl">TIPO:</span>
+  2879→          <select class="fs" id="ordType2" onchange="renderOrders()">
+  2880→            <option value="all">Todos</option>
+  2881→            <option value="SS">SS</option>
+  2882→            <option value="SF">SF</option>
+  2883→            <option value="FF">FF</option>
+  2884→          </select>
+  2885→          <span class="fl">RESULTADO:</span>
+  2886→          <select class="fs" id="ordResult" onchange="renderOrders()">
+  2887→            <option value="all">Todos</option>
+  2888→            <option value="win">Lucro</option>
+  2889→            <option value="loss">Perda</option>
+  2890→          </select>
+  2891→          <span class="fl">EXCH:</span>
+  2892→          <select class="fs" id="ordExch" onchange="renderOrders()">
+  2893→            <option value="all">Todas</option>
+  2894→            <option>BingX</option>
+  2895→            <option>MEXC</option>
+  2896→            <option>Gate</option>
+  2897→            <option>KuCoin</option>
+  2898→            <option>Binance</option>
+  2899→            <option>Bybit</option>
+  2900→            <option>OKX</option>
+  2901→            <option>LBank</option>
+  2902→            <option>Bitget</option>
+  2903→          </select>
+  2904→          <span class="fl">PAR:</span>
+  2905→          <input class="fi" type="text" id="ordSym" placeholder="BTC..." style="width:50px" oninput="renderOrders()">
+  2906→          <button class="btn-sm" onclick="exportOrders()">⬇ Export CSV</button>
+  2907→          <span style="font-size:9px;color:var(--tdim);margin-left:auto">Total: <span id="ordTotal"
+  2908→              style="color:var(--cyan);font-weight:700">0</span> trades</span>
+  2909→        </div>
+  2910→        <div class="ord-body">
+  2911→          <table class="ot">
+  2912→            <thead>
+  2913→              <tr>
+  2914→                <th>#</th>
+  2915→                <th>DATA/HORA</th>
+  2916→                <th>PAR</th>
+  2917→                <th>TIPO ARB</th>
+  2918→                <th>BUY EXCH</th>
+  2919→                <th>SELL EXCH</th>
+  2920→                <th>PREÇO BUY</th>
+  2921→                <th>PREÇO SELL</th>
+  2922→                <th>QTD (USDT)</th>
+  2923→                <th>SPREAD%</th>
+  2924→                <th>TAXAS%</th>
+  2925→                <th>SLIPPAGE%</th>
+  2926→                <th>PnL %</th>
+  2927→                <th>PnL USDT</th>
+  2928→                <th>STATUS</th>
+  2929→              </tr>
+  2930→            </thead>
+  2931→            <tbody id="ordBody"></tbody>
+  2932→          </table>
+  2933→        </div>
+  2934→      </div>
+  2935→
+  2936→      <!-- DAILY SUMMARY -->
+  2937→      <div id="res-daily" class="res-subpage">
+  2938→        <div class="daily-grid" id="dailyGrid"></div>
+  2939→      </div>
+  2940→
+  2941→    </div>
+  2942→  </div>
+  2943→
+  2944→  <!-- ══════════════════════════════════════
+  2945→     PAGE: API KEYS
+  2946→══════════════════════════════════════════ -->
+  2947→  <div id="pgApi" class="page">
+  2948→    <div class="api-section">
+  2949→      <div class="api-section-title">⚙️ Configurações Globais de Risco</div>
+  2950→      <div class="api-global-card">
+  2951→        <div class="api-global-row"><span class="api-global-label">Spread Mín. (%)</span><input class="api-global-inp"
+  2952→            type="number" value="0.30" step="0.05"></div>
+  2953→        <div class="api-global-row"><span class="api-global-label">Lucro Líq. Mín. (%)</span><input
+  2954→            class="api-global-inp" type="number" value="0.15" step="0.05"></div>
+  2955→        <div class="api-global-row"><span class="api-global-label">Tamanho Ordem (USDT)</span><input
+  2956→            class="api-global-inp" type="number" value="500" step="50"></div>
+  2957→        <div class="api-global-row"><span class="api-global-label">Ordens Simultâneas</span><input
+  2958→            class="api-global-inp" type="number" value="5" step="1"></div>
+  2959→        <div class="api-global-row"><span class="api-global-label">Slippage Máx. (%)</span><input class="api-global-inp"
+  2960→            type="number" value="0.08" step="0.01"></div>
+  2961→        <div class="api-global-row"><span class="api-global-label">Stop-Loss (%)</span><input class="api-global-inp"
+  2962→            type="number" value="0.50" step="0.05"></div>
+  2963→        <div class="api-global-row"><span class="api-global-label">Perda Máx. Diária (USDT)</span><input
+  2964→            class="api-global-inp" type="number" value="200" step="10"></div>
+  2965→        <div class="api-global-row"><span class="api-global-label">Exposição Total Máx.</span><input
+  2966→            class="api-global-inp" type="number" value="5000" step="100"></div>
+  2967→        <div class="api-global-row"><span class="api-global-label">Liquidez Mín. OB (USDT)</span><input
+  2968→            class="api-global-inp" type="number" value="50000" step="5000"></div>
+  2969→      </div>
+  2970→    </div>
+  2971→
+  2972→    <div class="api-section">
+  2973→      <div class="api-section-title">🔄 Modalidades & Automação</div>
+  2974→      <div
+  2975→        style="background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 20px">
+  2976→        <div class="toggle-wrap">
+  2977→          <div>
+  2978→            <div class="toggle-label">SPOT vs SPOT</div>
+  2979→            <div class="toggle-sub">Arbitragem entre spots de exchanges diferentes</div>
+  2980→          </div><label class="tgl"><input type="checkbox" id="tog-ss" checked>
+  2981→            <div class="tgl-sl"></div>
+  2982→          </label>
+  2983→        </div>
+  2984→        <div class="toggle-wrap">
+  2985→          <div>
+  2986→            <div class="toggle-label">SPOT vs FUTURES</div>
+  2987→            <div class="toggle-sub">Basis trade entre spot e contrato futuro</div>
+  2988→          </div><label class="tgl"><input type="checkbox" id="tog-sf" checked>
+  2989→            <div class="tgl-sl"></div>
+  2990→          </label>
+  2991→        </div>
+  2992→        <div class="toggle-wrap">
+  2993→          <div>
+  2994→            <div class="toggle-label">FUTURES vs FUTURES</div>
+  2995→            <div class="toggle-sub">Arbitragem entre futuros de exchanges</div>
+  2996→          </div><label class="tgl"><input type="checkbox" checked>
+  2997→            <div class="tgl-sl"></div>
+  2998→          </label>
+  2999→        </div>
+  3000→        <div class="toggle-wrap">
+  3001→          <div>
+  3002→            <div class="toggle-label">Auto-Executar</div>
+  3003→            <div class="toggle-sub">Executa automaticamente ao detectar oportunidade</div>
+  3004→          </div><label class="tgl"><input type="checkbox" id="tog-ff">
+  3005→            <div class="tgl-sl"></div>
+  3006→          </label>
+  3007→        </div>
+  3008→        <div class="toggle-wrap">
+  3009→          <div>
+  3010→            <div class="toggle-label">Confirmar antes de executar</div>
+  3011→            <div class="toggle-sub">Exibe modal de confirmação antes de enviar</div>
+  3012→          </div><label class="tgl"><input type="checkbox" id="tog-confirm" checked>
+  3013→            <div class="tgl-sl"></div>
+  3014→          </label>
+  3015→        </div>
+  3016→        <div class="toggle-wrap">
+  3017→          <div>
+  3018→            <div class="toggle-label">Monitorar Funding Rate</div>
+  3019→            <div class="toggle-sub">Incluir funding rate no cálculo de lucro líquido</div>
+  3020→          </div><label class="tgl"><input type="checkbox" id="tog-auto" checked>
+  3021→            <div class="tgl-sl"></div>
+  3022→          </label>
+  3023→        </div>
+  3024→        <div class="toggle-wrap">
+  3025→          <div>
+  3026→            <div class="toggle-label">Fechar pos. no funding</div>
+  3027→            <div class="toggle-sub">Auto-fechar posições antes do pagamento</div>
+  3028→          </div><label class="tgl"><input type="checkbox" checked>
+  3029→            <div class="tgl-sl"></div>
+  3030→          </label>
+  3031→        </div>
+  3032→        <div class="toggle-wrap">
+  3033→          <div>
+  3034→            <div class="toggle-label">Notificações sonoras</div>
+  3035→            <div class="toggle-sub">Emitir som ao detectar oportunidade</div>
+  3036→          </div><label class="tgl"><input type="checkbox">
+  3037→            <div class="tgl-sl"></div>
+  3038→          </label>
+  3039→        </div>
+  3040→      </div>
+  3041→    </div>
+  3042→
+  3043→    <div class="api-section">
+  3044→      <div class="api-section-title">🔑 Chaves de API por Corretora</div>
+  3045→      <div class="api-grid">
+  3046→
+  3047→        <!-- BingX -->
+  3048→        <div class="api-card">
+  3049→          <div class="api-card-hd">
+  3050→            <span class="api-card-name" style="color:#f0b90b">⬡ BingX</span>
+  3051→            <div class="api-card-status">
+  3052→              <div class="api-status-dot off" id="bingx-dot"></div><span id="bingx-status"
+  3053→                style="color:var(--dim)">Sem key</span>
+  3054→            </div>
+  3055→          </div>
+  3056→          <div class="api-card-body">
+  3057→            <form class="api-form" onsubmit="return false">
+  3058→            <div class="api-field">
+  3059→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3060→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-key"
+  3061→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3062→                  onclick="toggleEye('bingx-key',this)">👁</button></div>
+  3063→            </div>
+  3064→            <div class="api-field">
+  3065→              <div class="api-field-label">Secret Key</div>
+  3066→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bingx-secret"
+  3067→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3068→                  onclick="toggleEye('bingx-secret',this)">👁</button></div>
+  3069→            </div>
+  3070→            <div class="api-perms">
+  3071→              <span class="api-perm ok">✓ SPOT</span>
+  3072→              <span class="api-perm ok">✓ FUTURES</span>
+  3073→              <span class="api-perm ok">✓ TRADE</span>
+  3074→              <span class="api-perm no">✗ WITHDRAW</span>
+  3075→            </div>
+  3076→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3077→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
+  3078→                  id="bingx-bal-s">$2,341.50</span></div>
+  3079→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3080→                  class="api-bal-val" id="bingx-bal-f">$1,850.00</span></div>
+  3081→            </div>
+  3082→            </form>
+  3083→          </div>
+  3084→          <div class="api-card-footer">
+  3085→            <button class="api-test-btn" onclick="testApi('bingx')">🔌 Testar Conexão</button>
+  3086→            <button class="api-save-btn" onclick="saveApi('bingx')">💾 Salvar</button>
+  3087→          </div>
+  3088→        </div>
+  3089→
+  3090→        <!-- MEXC -->
+  3091→        <div class="api-card">
+  3092→          <div class="api-card-hd">
+  3093→            <span class="api-card-name" style="color:#00d4aa">◈ MEXC</span>
+  3094→            <div class="api-card-status">
+  3095→              <div class="api-status-dot off" id="mexc-dot"></div><span id="mexc-status"
+  3096→                style="color:var(--dim)">Sem key</span>
+  3097→            </div>
+  3098→          </div>
+  3099→          <div class="api-card-body">
+  3100→            <form class="api-form" onsubmit="return false">
+  3101→            <div class="api-field">
+  3102→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3103→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-key"
+  3104→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3105→                  onclick="toggleEye('mexc-key',this)">👁</button></div>
+  3106→            </div>
+  3107→            <div class="api-field">
+  3108→              <div class="api-field-label">Secret Key</div>
+  3109→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="mexc-secret"
+  3110→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3111→                  onclick="toggleEye('mexc-secret',this)">👁</button></div>
+  3112→            </div>
+  3113→            <div class="api-perms">
+  3114→              <span class="api-perm ok">✓ SPOT</span>
+  3115→              <span class="api-perm ok">✓ FUTURES</span>
+  3116→              <span class="api-perm ok">✓ TRADE</span>
+  3117→              <span class="api-perm no">✗ WITHDRAW</span>
+  3118→            </div>
+  3119→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3120→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span
+  3121→                  class="api-bal-val apibv" id="mexc-bal-s">—</span></div>
+  3122→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3123→                  class="api-bal-val apibv" id="mexc-bal-f">—</span></div>
+  3124→            </div>
+  3125→            </form>
+  3126→          </div>
+  3127→          <div class="api-card-footer">
+  3128→            <button class="api-test-btn" onclick="testApi('mexc')">🔌 Testar Conexão</button>
+  3129→            <button class="api-save-btn" onclick="saveApi('mexc')">💾 Salvar</button>
+  3130→          </div>
+  3131→        </div>
+  3132→
+  3133→        <!-- Gate.io -->
+  3134→        <div class="api-card">
+  3135→          <div class="api-card-hd">
+  3136→            <span class="api-card-name" style="color:#e6007a">◆ Gate.io</span>
+  3137→            <div class="api-card-status">
+  3138→              <div class="api-status-dot off" id="gate-dot"></div><span id="gate-status"
+  3139→                style="color:var(--dim)">Sem key</span>
+  3140→            </div>
+  3141→          </div>
+  3142→          <div class="api-card-body">
+  3143→            <form class="api-form" onsubmit="return false">
+  3144→            <div class="api-field">
+  3145→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3146→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-key"
+  3147→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3148→                  onclick="toggleEye('gate-key',this)">👁</button></div>
+  3149→            </div>
+  3150→            <div class="api-field">
+  3151→              <div class="api-field-label">Secret Key</div>
+  3152→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="gate-secret"
+  3153→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3154→                  onclick="toggleEye('gate-secret',this)">👁</button></div>
+  3155→            </div>
+  3156→            <div class="api-perms">
+  3157→              <span class="api-perm ok">✓ SPOT</span>
+  3158→              <span class="api-perm ok">✓ FUTURES</span>
+  3159→              <span class="api-perm ok">✓ TRADE</span>
+  3160→              <span class="api-perm no">✗ WITHDRAW</span>
+  3161→            </div>
+  3162→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3163→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
+  3164→                  id="gate-bal-s">$890.75</span></div>
+  3165→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3166→                  class="api-bal-val" id="gate-bal-f">$2,450.00</span></div>
+  3167→            </div>
+  3168→            </form>
+  3169→          </div>
+  3170→          <div class="api-card-footer">
+  3171→            <button class="api-test-btn" onclick="testApi('gate')">🔌 Testar Conexão</button>
+  3172→            <button class="api-save-btn" onclick="saveApi('gate')">💾 Salvar</button>
+  3173→          </div>
+  3174→        </div>
+  3175→
+  3176→        <!-- LBank -->
+  3177→        <div class="api-card">
+  3178→          <div class="api-card-hd">
+  3179→            <span class="api-card-name" style="color:#1a73e8">◈ LBank</span>
+  3180→            <div class="api-card-status">
+  3181→              <div class="api-status-dot off" id="lbank-dot"></div><span id="lbank-status" style="color:var(--dim)">Sem key</span>
+  3182→            </div>
+  3183→          </div>
+  3184→          <div class="api-card-body">
+  3185→            <form class="api-form" onsubmit="return false">
+  3186→            <div class="api-field">
+  3187→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3188→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-key',this)">👁</button></div>
+  3189→            </div>
+  3190→            <div class="api-field">
+  3191→              <div class="api-field-label">Secret Key</div>
+  3192→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="lbank-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('lbank-secret',this)">👁</button></div>
+  3193→            </div>
+  3194→            <div class="api-perms">
+  3195→              <span class="api-perm ok">✓ SPOT</span>
+  3196→              <span class="api-perm ok">✓ TRADE</span>
+  3197→              <span class="api-perm no">✗ WITHDRAW</span>
+  3198→            </div>
+  3199→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3200→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="lbank-bal-s">—</span></div>
+  3201→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="lbank-bal-f">—</span></div>
+  3202→            </div>
+  3203→            </form>
+  3204→          </div>
+  3205→          <div class="api-card-footer">
+  3206→            <button class="api-test-btn" onclick="testApi('lbank')">🔌 Testar Conexão</button>
+  3207→            <button class="api-save-btn" onclick="saveApi('lbank')">💾 Salvar</button>
+  3208→          </div>
+  3209→        </div>
+  3210→
+  3211→        <!-- Bitget -->
+  3212→        <div class="api-card">
+  3213→          <div class="api-card-hd">
+  3214→            <span class="api-card-name" style="color:#00c8ff">◆ Bitget</span>
+  3215→            <div class="api-card-status">
+  3216→              <div class="api-status-dot off" id="bitget-dot"></div><span id="bitget-status" style="color:var(--dim)">Sem key</span>
+  3217→            </div>
+  3218→          </div>
+  3219→          <div class="api-card-body">
+  3220→            <form class="api-form" onsubmit="return false">
+  3221→            <div class="api-field">
+  3222→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3223→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-key',this)">👁</button></div>
+  3224→            </div>
+  3225→            <div class="api-field">
+  3226→              <div class="api-field-label">Secret Key</div>
+  3227→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bitget-secret',this)">👁</button></div>
+  3228→            </div>
+  3229→            <div class="api-field">
+  3230→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3231→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bitget-pp" placeholder="Passphrase Bitget..."><button class="api-eye" onclick="toggleEye('bitget-pp',this)">👁</button></div>
+  3232→            </div>
+  3233→            <div class="api-perms">
+  3234→              <span class="api-perm ok">✓ SPOT</span>
+  3235→              <span class="api-perm ok">✓ FUTURES</span>
+  3236→              <span class="api-perm ok">✓ TRADE</span>
+  3237→              <span class="api-perm no">✗ WITHDRAW</span>
+  3238→            </div>
+  3239→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3240→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bitget-bal-s">—</span></div>
+  3241→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bitget-bal-f">—</span></div>
+  3242→            </div>
+  3243→            </form>
+  3244→          </div>
+  3245→          <div class="api-card-footer">
+  3246→            <button class="api-test-btn" onclick="testApi('bitget')">🔌 Testar Conexão</button>
+  3247→            <button class="api-save-btn" onclick="saveApi('bitget')">💾 Salvar</button>
+  3248→          </div>
+  3249→        </div>
+  3250→
+  3251→        <!-- KuCoin -->
+  3252→        <div class="api-card">
+  3253→          <div class="api-card-hd">
+  3254→            <span class="api-card-name" style="color:#00ab6c">✦ KuCoin</span>
+  3255→            <div class="api-card-status">
+  3256→              <div class="api-status-dot off" id="kucoin-dot"></div><span id="kucoin-status"
+  3257→                style="color:var(--dim)">Sem key</span>
+  3258→            </div>
+  3259→          </div>
+  3260→          <div class="api-card-body">
+  3261→            <form class="api-form" onsubmit="return false">
+  3262→            <div class="api-field">
+  3263→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3264→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-key"
+  3265→                  placeholder="Cole sua API Key aqui..."><button class="api-eye"
+  3266→                  onclick="toggleEye('kucoin-key',this)">👁</button></div>
+  3267→            </div>
+  3268→            <div class="api-field">
+  3269→              <div class="api-field-label">Secret Key</div>
+  3270→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-secret"
+  3271→                  placeholder="Cole sua Secret Key aqui..."><button class="api-eye"
+  3272→                  onclick="toggleEye('kucoin-secret',this)">👁</button></div>
+  3273→            </div>
+  3274→            <div class="api-field">
+  3275→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3276→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="kucoin-pp"
+  3277→                  placeholder="Passphrase KuCoin..."><button class="api-eye"
+  3278→                  onclick="toggleEye('kucoin-pp',this)">👁</button></div>
+  3279→            </div>
+  3280→            <div class="api-perms">
+  3281→              <span class="api-perm ok">✓ SPOT</span>
+  3282→              <span class="api-perm ok">✓ FUTURES</span>
+  3283→              <span class="api-perm no">✗ TRADE — key inválida</span>
+  3284→            </div>
+  3285→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3286→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT</span><span class="api-bal-val"
+  3287→                  style="color:var(--red)">—</span></div>
+  3288→            </div>
+  3289→            </form>
+  3290→          </div>
+  3291→          <div class="api-card-footer">
+  3292→            <button class="api-test-btn" onclick="testApi('kucoin')">🔌 Testar Conexão</button>
+  3293→            <button class="api-save-btn" onclick="saveApi('kucoin')">💾 Salvar</button>
+  3294→          </div>
+  3295→          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3296→            <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span
+  3297→                class="api-bal-val apibv" id="kucoin-bal-s">—</span></div>
+  3298→            <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
+  3299→                class="api-bal-val apibv" id="kucoin-bal-f">—</span></div>
+  3300→            <div class="api-balance-row"><span class="api-bal-key">Atualizado</span><span class="api-bal-val"
+  3301→                id="kucoin-bal-ts" style="color:var(--dim)">—</span></div>
+  3302→          </div>
+  3303→        </div>
+  3304→
+  3305→        <!-- Bybit -->
+  3306→        <div class="api-card">
+  3307→          <div class="api-card-hd">
+  3308→            <span class="api-card-name" style="color:#f7a600">⬡ Bybit</span>
+  3309→            <div class="api-card-status">
+  3310→              <div class="api-status-dot off" id="bybit-dot"></div><span id="bybit-status" style="color:var(--dim)">Sem key</span>
+  3311→            </div>
+  3312→          </div>
+  3313→          <div class="api-card-body">
+  3314→            <form class="api-form" onsubmit="return false">
+  3315→            <div class="api-field">
+  3316→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3317→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-key',this)">👁</button></div>
+  3318→            </div>
+  3319→            <div class="api-field">
+  3320→              <div class="api-field-label">Secret Key</div>
+  3321→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="bybit-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('bybit-secret',this)">👁</button></div>
+  3322→            </div>
+  3323→            <div class="api-perms">
+  3324→              <span class="api-perm ok">✓ SPOT</span>
+  3325→              <span class="api-perm ok">✓ TRADE</span>
+  3326→              <span class="api-perm no">✗ WITHDRAW</span>
+  3327→            </div>
+  3328→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3329→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="bybit-bal-s">—</span></div>
+  3330→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="bybit-bal-f">—</span></div>
+  3331→            </div>
+  3332→            </form>
+  3333→          </div>
+  3334→          <div class="api-card-footer">
+  3335→            <button class="api-test-btn" onclick="testApi('bybit')">🔌 Testar Conexão</button>
+  3336→            <button class="api-save-btn" onclick="saveApi('bybit')">💾 Salvar</button>
+  3337→          </div>
+  3338→        </div>
+  3339→
+  3340→        <!-- OKX -->
+  3341→        <div class="api-card">
+  3342→          <div class="api-card-hd">
+  3343→            <span class="api-card-name" style="color:#3c6bfe">◆ OKX</span>
+  3344→            <div class="api-card-status">
+  3345→              <div class="api-status-dot off" id="okx-dot"></div><span id="okx-status" style="color:var(--dim)">Sem key</span>
+  3346→            </div>
+  3347→          </div>
+  3348→          <div class="api-card-body">
+  3349→            <form class="api-form" onsubmit="return false">
+  3350→            <div class="api-field">
+  3351→              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+  3352→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('okx-key',this)">👁</button></div>
+  3353→            </div>
+  3354→            <div class="api-field">
+  3355→              <div class="api-field-label">Secret Key</div>
+  3356→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('okx-secret',this)">👁</button></div>
+  3357→            </div>
+  3358→            <div class="api-field">
+  3359→              <div class="api-field-label">Passphrase <span style="color:var(--orange)">⚠ Obrigatório</span></div>
+  3360→              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="okx-pp" placeholder="Passphrase OKX..."><button class="api-eye" onclick="toggleEye('okx-pp',this)">👁</button></div>
+  3361→            </div>
+  3362→            <div class="api-perms">
+  3363→              <span class="api-perm ok">✓ SPOT</span>
+  3364→              <span class="api-perm ok">✓ FUTURES</span>
+  3365→              <span class="api-perm ok">✓ TRADE</span>
+  3366→              <span class="api-perm no">✗ WITHDRAW</span>
+  3367→            </div>
+  3368→            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+  3369→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="okx-bal-s">—</span></div>
+  3370→              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="okx-bal-f">—</span></div>
+  3371→            </div>
+  3372→            </form>
+  3373→          </div>
+  3374→          <div class="api-card-footer">
+  3375→            <button class="api-test-btn" onclick="testApi('okx')">🔌 Testar Conexão</button>
+  3376→            <button class="api-save-btn" onclick="saveApi('okx')">💾 Salvar</button>
+  3377→          </div>
+  3378→        </div>
+  3379→
+  3380→      </div>
+  3381→    </div>
+  3382→
+  3383→    <div class="api-section">
+  3384→      <div class="api-section-title" style="color:var(--red)">🛡️ Avisos de Segurança</div>
+  3385→      <div
+  3386→        style="background:var(--rd1);border:1px solid var(--red);border-radius:8px;padding:12px;font-size:9px;color:var(--tmid);line-height:1.8">
+  3387→        <div>⛔ <b style="color:var(--red)">NUNCA</b> habilite a permissão de SAQUE (WITHDRAW) nas suas API Keys.</div>
+  3388→        <div>🔒 As chaves são salvas localmente — <b>nunca são enviadas para servidores externos</b>.</div>
+  3389→        <div>🌐 Configure whitelist de IP nas corretoras para maior segurança.</div>
+  3390→        <div>🔑 Use API Keys exclusivas para este bot — não compartilhe com outras aplicações.</div>
+  3391→        <div>⏱️ As keys expiram após 90 dias em algumas corretoras — verifique periodicamente.</div>
+  3392→      </div>
+  3393→    </div>
+  3394→  </div>
+  3395→
+  3396→  <!-- EXEC MODAL -->
+  3397→  <div id="modal">
+  3398→    <div class="m-box" style="width:360px">
+  3399→      <div class="m-hd"><span class="m-title">⚡ Confirmar ARB Simultâneo</span><button class="m-x"
+  3400→          onclick="closeM()">✕</button></div>
+  3401→      <div class="m-bd">
+  3402→        <div class="c-box">
+  3403→          <div class="cr2"><span class="ck2">Par</span><span class="cv2" id="mPair" style="color:var(--green)"></span>
+  3404→          </div>
+  3405→          <div class="cr2"><span class="ck2">LIMIT BUY</span><span class="cv2" id="mBuy"></span></div>
+  3406→          <div class="cr2"><span class="ck2">LIMIT SELL</span><span class="cv2" id="mSell"></span></div>
+  3407→          <div class="cr2"><span class="ck2">Quantidade</span><span class="cv2" id="mQty" style="display:none"></span>
+  3408→          </div>
+  3409→          <div class="cr2"><span class="ck2">Spread</span><span class="cv2" id="mSp" style="color:var(--yellow)"></span>
+  3410→          </div>
+  3411→          <div class="cr2"><span class="ck2">Lucro Est.</span><span class="cv2" id="mNet"
+  3412→              style="color:var(--green)"></span></div>
+  3413→        </div>
+  3414→        <div class="m-btns">
+  3415→          <button class="m-cn" onclick="closeM()">Cancelar</button>
+  3416→          <button class="b-arb" onclick="confirmArb()" style="margin-top:0">✓ CONFIRMAR</button>
+  3417→        </div>
+  3418→      </div>
+  3419→    </div>
+  3420→  </div>
+  3421→
+  3422→  <!-- EXIT MODAL -->
+  3423→  <div id="exitModal">
+  3424→    <div class="ex-box">
+  3425→      <div class="ex-hd"><span class="ex-t">🔴 SAÍDA RÁPIDA DE POSIÇÕES</span><button class="m-x"
+  3426→          style="color:var(--red)" onclick="closeExit()">✕</button></div>
+  3427→      <div class="ex-bd" id="exBd"></div>
+  3428→    </div>
+  3429→  </div>
+  3430→
+  3431→  <div id="notif"></div>
+  3432→
+  3433→  <script>
+  3434→
+  3435→
+  3436→
+  3437→
+  3438→
+  3439→
+  3440→    window.onerror = function (msg, src, line, col, err) {
+  3441→      document.body.insertAdjacentHTML('afterbegin',
+  3442→        '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:12px;z-index:99999;font-size:13px;font-family:monospace">' +
+  3443→        '❌ ERRO JS linha ' + line + ': ' + msg + '</div>'
+  3444→      );
+  3445→      console.error('ERRO:', msg, 'linha:', line);
+  3446→      return false;
+  3447→    };
+  3448→
+  3449→    // ════════════════════════════════════════════════════════
+  3450→    // CONSTANTS
+  3451→    // ════════════════════════════════════════════════════════
+  3452→    const PAIRS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'AVAX/USDT', 'LINK/USDT', 'DOT/USDT', 'POL/USDT', 'LTC/USDT', 'NEAR/USDT', 'APT/USDT', 'ARB/USDT', 'OP/USDT', 'INJ/USDT', 'SUI/USDT'];
+  3453→    const EXCHS = ['BingX', 'MEXC', 'Gate', 'KuCoin', 'Binance', 'Bybit', 'OKX', 'LBank', 'Bitget'];
+  3454→    const QUOTES = {};
+  3455→    let LAST_FETCH = 0;
+  3456→    let MODE_WARN_TS = 0;
+  3457→
+  3458→    const FEE = { BingX: .075, MEXC: .020, Gate: .060, KuCoin: .100, Binance: .100, Bybit: .100, OKX: .100, LBank: .100, Bitget: .060 };
+  3459→    const BAL = { BingX: { spot: null, futures: null }, MEXC: { spot: null, futures: null }, Gate: { spot: null, futures: null }, KuCoin: { spot: null, futures: null }, Binance: { spot: null, futures: null }, Bybit: { spot: null, futures: null }, OKX: { spot: null, futures: null }, LBank: { spot: null, futures: null }, Bitget: { spot: null, futures: null } };
+  3460→
+  3461→    let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
+  3462→    let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
+  3463→
+  3464→    // ════════════════════════════════════════════════════════
+  3465→    // LOCALSTORAGE
+  3466→    // ════════════════════════════════════════════════════════
+  3467→    const LS = 'arbhft3_';
+  3468→    const lsSet = (k, v) => { try { localStorage.setItem(LS + k, JSON.stringify(v)) } catch (e) { } };
+  3469→    const lsGet = (k, d = null) => { try { const v = localStorage.getItem(LS + k); return v !== null ? JSON.parse(v) : d } catch (e) { return d } };
+  3470→
+  3471→    function saveApi(exch) {
+  3472→      const key = document.getElementById(exch + '-key')?.value?.trim();
+  3473→      const secret = document.getElementById(exch + '-secret')?.value?.trim();
+  3474→      const pp = document.getElementById(exch + '-pp')?.value?.trim();
+  3475→      if (!key || !secret) { notify('⚠ Preencha API Key e Secret do ' + exch, 'w'); return }
+  3476→      const data = { key, secret }; if (pp) data.passphrase = pp;
+  3477→      lsSet('keys_' + exch, data);
+  3478→      document.getElementById(exch + '-key').classList.add('valid');
+  3479→      document.getElementById(exch + '-secret').classList.add('valid');
+  3480→      notify('💾 ' + exch + ' salvo no navegador', 'p');
+  3481→      fetchBalances(exch);
+  3482→    }
+  3483→
+  3484→    function loadSavedKeys() {
+  3485→      EXCHS.forEach(ex => {
+  3486→        const exl = ex.toLowerCase();
+  3487→        const s = lsGet('keys_' + exl);
+  3488→        if (!s || !s.key) { setApiSt(exl, 'off', 'Sem key'); return; }
+  3489→        const ki = document.getElementById(exl + '-key'), si = document.getElementById(exl + '-secret');
+  3490→        if (ki && s.key) { ki.value = s.key; ki.classList.add('valid') }
+  3491→        if (si && s.secret) { si.value = s.secret; si.classList.add('valid') }
+  3492→        const pi = document.getElementById(exl + '-pp'); if (pi && s.passphrase) pi.value = s.passphrase;
+  3493→        setApiSt(exl, 'loading', 'Verificando...');
+  3494→      });
+  3495→    }
+  3496→
+  3497→    function loadSavedConfig() {
+  3498→      ['minSpread', 'minNet', 'orderSize', 'maxOrders', 'stopLoss', 'maxDailyLoss', 'maxExposure', 'minLiq'].forEach(k => {
+  3499→        const v = lsGet('cfg_' + k); if (v != null) { const el = document.getElementById('cfg-' + k); if (el) el.value = v }
+
+<system-reminder>
+Whenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.
+</system-reminder>
