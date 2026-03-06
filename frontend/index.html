@@ -4264,7 +4264,7 @@
           if (sp < 0.01) return;
           const fees = (FEE[bEx] || 0) + (FEE[sEx] || 0);
           const fr = 0;
-          const net = +(sp - fees * 100).toFixed(3);
+          const net = +(sp - fees).toFixed(3);
           const buyAt = +ask.toFixed(ask > 1000 ? 2 : 4);
           const sellAt = +bid.toFixed(bid > 1000 ? 2 : 4);
           let liq = null;
