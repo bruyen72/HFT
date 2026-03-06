@@ -3310,7 +3310,9 @@
         const v = lsGet('cfg_' + k); if (v != null) { const el = document.getElementById('cfg-' + k); if (el) el.value = v }
       });
       ['ss', 'sf', 'fs', 'ff', 'auto', 'confirm'].forEach(k => {
-        const v = lsGet('tog_' + k); if (v != null) { const el = document.getElementById('tog-' + k); if (el) el.checked = v }
+        const v = lsGet('tog_' + k);
+        // tog-ss é o modo principal — nunca desativa por localStorage
+        if (v != null && k !== 'ss') { const el = document.getElementById('tog-' + k); if (el) el.checked = v }
       });
     }
 
@@ -4250,8 +4252,8 @@
     function sortSp() { filteredRows.sort((a, b) => b.spread - a.spread); renderScanner(); renderAsset() }
     function refresh() { genRows(); applyF(); notify('↺ Scanner atualizado', '') }
 
-    function live() {
-      refreshQuotes();
+    async function live() {
+      await refreshQuotes();
       genRows();
       applyF();
       (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (1 + Math.floor(Math.random() * 8)) + 'ms'; })();
@@ -4333,7 +4335,8 @@
         const now = Date.now();
         if (now - LAST_FETCH < 1200) return;
         LAST_FETCH = now;
-        for (const ex of EXCHS) {
+        // Busca todas as exchanges em paralelo (cada exchange busca seus pares sequencialmente)
+        await Promise.all(EXCHS.map(async ex => {
           if (!QUOTES[ex]) QUOTES[ex] = {};
           for (const sym of PAIRS) {
             const q = await fetchQuote(ex, sym);
@@ -4341,7 +4344,7 @@
               QUOTES[ex][sym] = { ...q, ts: now };
             }
           }
-        }
+        }));
       });
     }
 
