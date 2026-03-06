@@ -4320,8 +4320,8 @@
             return null;
           }
           const d = await r.json();
-          const data = d?.data || {};
-          return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidQty || 0), askQty: parseFloat(data.askQty || 0) };
+          const data = Array.isArray(d?.data) ? (d.data[0] || {}) : (d?.data || {});
+          return { bid: parseFloat(data.bidPrice || 0), ask: parseFloat(data.askPrice || 0), bidQty: parseFloat(data.bidVolume || data.bidQty || 0), askQty: parseFloat(data.askVolume || data.askQty || 0) };
         }
       } catch (e) {
         console.warn('[QUOTE] ' + ex + ' ' + sym + ': ' + errMsg(e));
