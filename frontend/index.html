@@ -4737,7 +4737,8 @@
             if (t) result[sym] = { bid: parseFloat(t.buy||0), ask: parseFloat(t.sell||0), bidQty: 0, askQty: 0 };
           }
         } else if (ex === 'BingX') {
-          const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { method: 'GET' }, true);
+          // BingX bloqueia IPs de datacenter — busca direto do browser
+          const r = await fetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { signal: AbortSignal.timeout(10000) });
           if (!r || !r.ok) return result;
           const d = await r.json();
           const lk = {}; (Array.isArray(d?.data) ? d.data : []).forEach(t => { lk[t.symbol] = t; });
@@ -4746,7 +4747,8 @@
             if (t) result[sym] = { bid: parseFloat(t.bidPrice||0), ask: parseFloat(t.askPrice||0), bidQty: parseFloat(t.bidVolume||t.bidQty||0), askQty: parseFloat(t.askVolume||t.askQty||0) };
           }
         } else if (ex === 'Bybit') {
-          const r = await apiFetch('https://api.bybit.com/v5/market/tickers?category=spot', { method: 'GET' }, true);
+          // Bybit permite CORS — busca direto do browser
+          const r = await fetch('https://api.bybit.com/v5/market/tickers?category=spot', { signal: AbortSignal.timeout(10000) });
           if (!r || !r.ok) return result;
           const d = await r.json();
           const lk = {}; (d?.result?.list || []).forEach(t => { lk[t.symbol] = t; });
