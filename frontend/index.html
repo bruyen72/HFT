@@ -3730,7 +3730,7 @@
         const spot = parseFloat(u?.free || 0);
         let fut = 0;
         try {
-          const ts2 = Date.now().toString();
+          const ts2 = correctTs().toString();
           const strSign = c.key + ts2;
           const s2 = await hmacHex(strSign, c.secret);
           const r2 = await apiFetch('https://futures.mexc.com/api/v1/private/account/assets', { method: 'GET', headers: { 'ApiKey': c.key, 'Request-Time': ts2, 'Signature': s2, 'Content-Type': 'application/json' } });
@@ -3779,7 +3779,7 @@
         const spot = parseFloat(accs.find(a => a.type === 'trade' && a.currency === 'USDT')?.available || 0);
         let fut = 0;
         try {
-          const ts2 = Date.now().toString();
+          const ts2 = correctTs().toString();
           const fPath = '/api/v1/account-overview';
           const fQuery = 'currency=USDT';
           const sig2 = await hmacB64(ts2 + 'GET' + fPath + '?' + fQuery, c.secret);
@@ -3892,7 +3892,7 @@
 
     async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
       // BingX: params in query string, signed with HMAC-SHA256
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const sf = sym.replace('/', '').replace('-USDT', '').concat('-USDT');
       const params = isSpot
         ? 'symbol=' + sf + '&side=' + side.toUpperCase() + '&type=LIMIT&quantity=' + qty + '&price=' + price + '&timeInForce=GTC&timestamp=' + ts + '&recvWindow=5000'
@@ -3910,7 +3910,7 @@
     async function placeOrderMEXC(c, sym, side, qty, price, isSpot) {
       // MEXC Spot: body JSON com symbol, params de autenticação no query string
       // MEXC requires symbol in BODY for POST orders
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const sf = sym.replace('/', '');
       if (isSpot) {
         // Spot: symbol e dados no body JSON, auth no query
@@ -3926,7 +3926,7 @@
         } catch (e) { throw new Error('MEXC spot ordem: ' + e.message) }
       } else {
         // Futures: contract.mexc.com, sign = HMAC(apiKey+ts)
-        const ts2 = Date.now().toString();
+        const ts2 = correctTs().toString();
         const strSign = c.key + ts2;
         const sig2 = await hmacHex(strSign, c.secret);
         const bodyObj = { symbol: sf + '_USDT', side: side.toUpperCase() === 'BUY' ? 1 : 3, orderType: 1, price: String(price), vol: String(qty), openType: 1, type: 1 };
@@ -3941,7 +3941,7 @@
 
     async function placeOrderGate(c, sym, side, qty, price, isSpot) {
       // Gate.io: HMAC-SHA512, body hash no signed string
-      const tsSec = Math.floor(Date.now() / 1000).toString();
+      const tsSec = Math.floor(correctTs() / 1000).toString();
       const sf = sym.replace('/', '_');
       const bodyObj = isSpot
         ? { currency_pair: sf, side: side.toLowerCase(), type: 'limit', amount: String(qty), price: String(price), time_in_force: 'gtc' }
@@ -3962,7 +3962,7 @@
     async function placeOrderKuCoin(c, sym, side, qty, price, isSpot) {
       // KuCoin: sign = HMAC-SHA256-B64(ts+method+path+body)
       if (!c.passphrase) throw new Error('KuCoin: Passphrase obrigatorio');
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const sf = isSpot ? sym.replace('/', '-') : sym.replace('/', '');
       const path = isSpot ? '/api/v1/orders' : '/api/v1/orders';
       const host = isSpot ? 'https://api.kucoin.com' : 'https://api-futures.kucoin.com';
@@ -3982,7 +3982,7 @@
     }
     async function placeOrderBybit(c, sym, side, qty, price, isSpot) {
       // Bybit V5 — HMAC-SHA256(ts+apiKey+recvWindow+bodyStr, secret)
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const recv = '5000';
       const sf = sym.replace('/', '').replace('_', '');
       const bodyObj = isSpot
@@ -4295,8 +4295,8 @@
         if (srch && !r.sym.includes(srch)) return false; return true;
       });
       if (selIdx >= filteredRows.length) selIdx = 0;
-      // Só rebuilda DOM se algo mudou (evita innerHTML pesado sem necessidade)
-      const _newHash = filteredRows.length + '|' + selIdx + '|' + (filteredRows[0]?.spread.toFixed(3) || '');
+      // Só rebuilda DOM se estrutura mudou (ignora variações de spread — muito volátil)
+      const _newHash = filteredRows.length + '|' + selIdx + '|' + filteredRows.slice(0, 4).map(r => r.sym + r.exchs[0] + r.exchs[1]).join('|');
       if (_newHash !== _scanHash) { _scanHash = _newHash; renderScanner(); renderAsset(); }
       (function () { var __t = document.getElementById('oppCnt'); if (__t) __t.textContent = filteredRows.length; })();
       (function () { var __t = document.getElementById('scanBadge'); if (__t) __t.textContent = filteredRows.length; })();
@@ -4338,12 +4338,14 @@
       const srch = (document.getElementById('apSrch').value || '').toUpperCase();
       const rows = filteredRows.filter(r => !srch || r.sym.includes(srch));
       const seen = new Set();
-      const unique = rows.filter(r => { const k = r.sym + '|' + r.type + '|' + r.exchs.join('-'); if (seen.has(k)) return false; seen.add(k); return true });
+      const unique = rows.filter(r => { const k = r.sym + '|' + r.type + '|' + r.exchs.join('-'); if (seen.has(k)) return false; seen.add(k); return true }).slice(0, 40);
       document.getElementById('alist').innerHTML = unique.map(r => `<div class="ai${filteredRows.indexOf(r) === selIdx ? ' sel' : ''}" onclick="sel(${filteredRows.indexOf(r)})"><span class="ai-sym">${r.sym.split('/')[0]}<br><span style="font-size:7px;color:var(--dim)">${r.exchs[0]}→${r.exchs[1]}</span></span><span class="ai-sp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(2)}%</span><span class="at t${r.type.toLowerCase()}">${r.type}</span></div>`).join('');
     }
 
     function renderScanner() {
-      document.getElementById('scBody').innerHTML = filteredRows.map((r, i) => `<div class="sr${i === selIdx ? ' sel' : ''}" onclick="sel(${i})"><span style="color:var(--dim);font-size:8px">${r.rank}</span><span style="font-weight:700;font-size:10px">${r.sym}</span><span class="at t${r.type.toLowerCase()}">${r.type}</span><span style="color:var(--mid);font-size:9px">${r.exchs[0]}→${r.exchs[1]}</span><span class="srsp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(3)}%</span><span class="srpr">$${fmtP(r.buyAt, r.buyAt > 100 ? 2 : 4)}</span><span class="srpr">$${fmtP(r.sellAt, r.sellAt > 100 ? 2 : 4)}</span><span class="${r.fr > 0 ? 'srfp' : 'srfn'}">${(r.fr * 100).toFixed(3)}%</span><span><div class="lw"><div class="lb" style="width:${Math.min(80, r.liq / 5000)}px"></div><span class="lv">$${fmt(r.liq)}</span></div></span><span style="font-weight:700;font-size:10px;color:${r.net > 0 ? 'var(--g)' : 'var(--r)'}">${(r.net > 0 ? '+' : '') + r.net.toFixed(3)}%</span><span class="sra"><button class="bar" onclick="event.stopPropagation();qArb(${i})">⚡ARB</button><button class="bwr" onclick="event.stopPropagation();watchRow(${i})">👁</button></span></div>`).join('');
+      // Limita a 75 linhas — evita innerHTML pesado com centenas de rows
+      const rows = filteredRows.slice(0, 75);
+      document.getElementById('scBody').innerHTML = rows.map((r, i) => `<div class="sr${i === selIdx ? ' sel' : ''}" onclick="sel(${i})"><span style="color:var(--dim);font-size:8px">${r.rank}</span><span style="font-weight:700;font-size:10px">${r.sym}</span><span class="at t${r.type.toLowerCase()}">${r.type}</span><span style="color:var(--mid);font-size:9px">${r.exchs[0]}→${r.exchs[1]}</span><span class="srsp ${r.spread > .5 ? 'h' : r.spread > .3 ? 'w' : 'c'}">${r.spread.toFixed(3)}%</span><span class="srpr">$${fmtP(r.buyAt, r.buyAt > 100 ? 2 : 4)}</span><span class="srpr">$${fmtP(r.sellAt, r.sellAt > 100 ? 2 : 4)}</span><span class="${r.fr > 0 ? 'srfp' : 'srfn'}">${(r.fr * 100).toFixed(3)}%</span><span><div class="lw"><div class="lb" style="width:${Math.min(80, r.liq / 5000)}px"></div><span class="lv">$${fmt(r.liq)}</span></div></span><span style="font-weight:700;font-size:10px;color:${r.net > 0 ? 'var(--g)' : 'var(--r)'}">${(r.net > 0 ? '+' : '') + r.net.toFixed(3)}%</span><span class="sra"><button class="bar" onclick="event.stopPropagation();qArb(${i})">⚡ARB</button><button class="bwr" onclick="event.stopPropagation();watchRow(${i})">👁</button></span></div>`).join('');
     }
 
     function renderOB(mid, liq) {
@@ -4442,7 +4444,7 @@
       const exl = exch.toLowerCase();
       const c = lsGet('keys_' + exl);
       if (!c || !c.key) throw new Error('Key ' + exch + ' não configurada');
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       if (exl === 'bingx') {
         const sf = sym.replace('/', '').replace('-USDT', '') + '-USDT';
         const ep = isSpot ? '/openApi/spot/v1/trade/order' : '/openApi/swap/v2/trade/order';
@@ -4460,7 +4462,7 @@
       }
       if (exl === 'gate') {
         const sf = sym.replace('/', '_');
-        const tsSec = Math.floor(Date.now() / 1000).toString();
+        const tsSec = Math.floor(correctTs() / 1000).toString();
         const query = 'currency_pair=' + sf;
         const path = '/api/v4/spot/orders/' + orderId;
         const bh = await sha512hex('');
@@ -4669,7 +4671,7 @@
     // ════════════════════════════════════════════════════════
     // BOT + LIVE TICK
     // ════════════════════════════════════════════════════════
-    function startBot() { botRunning = true; notify('▶ Bot ATIVO', 'g'); if (!liveInterval) liveInterval = setInterval(live, 1600) }
+    function startBot() { botRunning = true; notify('▶ Bot ATIVO', 'g'); if (!liveInterval) liveInterval = setInterval(live, 3000) }
     function stopBot() { botRunning = false; notify('⏹ Bot PAUSADO', 'w'); if (liveInterval) { clearInterval(liveInterval); liveInterval = null } }
     function onExchChange() { updateBalPanel() }
     function sortSp() { filteredRows.sort((a, b) => b.spread - a.spread); renderScanner(); renderAsset() }
