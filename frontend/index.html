@@ -2602,7 +2602,7 @@
       <div class="alist" id="alist"></div>
       <div class="col-ft">
         <span>min: <b id="minSV">0%</b></span>
-        <span><b id="listCt">20</b> pares</span>
+        <span><b id="listCt">0</b> pares</span>
       </div>
     </div>
 
@@ -2701,15 +2701,15 @@
             <div class="bal-cell">
               <div class="bal-exch-name"><span id="balBuyName">BingX</span><span class="bal-exch-type"
                   id="balBuyType">SPOT</span></div>
-              <div class="bal-avail" id="balBuyUsdt">$2,341.50</div>
-              <div class="bal-asset-qty" id="balBuyAsset">≈ 0.0534 BTC disp.</div>
+              <div class="bal-avail" id="balBuyUsdt">—</div>
+              <div class="bal-asset-qty" id="balBuyAsset"></div>
               <button class="bal-use-btn" onclick="useMaxBuy()">USAR SALDO ↑</button>
             </div>
             <div class="bal-cell">
               <div class="bal-exch-name"><span id="balSellName">MEXC</span><span class="bal-exch-type"
                   id="balSellType">FUTURES</span></div>
-              <div class="bal-avail" id="balSellUsdt">$1,920.00</div>
-              <div class="bal-asset-qty" id="balSellAsset">≈ 0.0438 BTC disp.</div>
+              <div class="bal-avail" id="balSellUsdt">—</div>
+              <div class="bal-asset-qty" id="balSellAsset"></div>
               <button class="bal-use-btn" onclick="useMaxSell()">USAR SALDO ↑</button>
             </div>
           </div>
@@ -2813,8 +2813,7 @@
         <!-- Positions strip -->
         <div id="pstrip">
           <div class="ps-hd">
-            <span class="ps-t">📋 Posições Abertas <span id="psCt" style="color:var(--cyan);font-size:8px">3
-                ativas</span></span>
+            <span class="ps-t">📋 Posições Abertas <span id="psCt" style="color:var(--cyan);font-size:8px">0 ativas</span></span>
             <div class="ps-acts">
               <button class="b-ca" onclick="cancelAll()">✕ Cancelar Ordens</button>
               <button class="b-cla" onclick="openExit()">🔴 Fechar Todas</button>
@@ -3078,9 +3077,9 @@
             </div>
             <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
               <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
-                  id="bingx-bal-s">$2,341.50</span></div>
+                  id="bingx-bal-s">—</span></div>
               <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
-                  class="api-bal-val" id="bingx-bal-f">$1,850.00</span></div>
+                  class="api-bal-val" id="bingx-bal-f">—</span></div>
             </div>
             </form>
           </div>
@@ -3164,9 +3163,9 @@
             </div>
             <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
               <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val"
-                  id="gate-bal-s">$890.75</span></div>
+                  id="gate-bal-s">—</span></div>
               <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span
-                  class="api-bal-val" id="gate-bal-f">$2,450.00</span></div>
+                  class="api-bal-val" id="gate-bal-f">—</span></div>
             </div>
             </form>
           </div>
