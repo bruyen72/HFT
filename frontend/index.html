@@ -4788,14 +4788,15 @@
       const result = {};
       try {
         if (ex === 'Binance') {
-          const r = await apiFetch('https://api.binance.com/api/v3/ticker/bookTicker', { method: 'GET' }, true);
-          if (!r || !r.ok) return result;
-          const data = await r.json();
+          // Binance bloqueia proxy Render (CloudFront 403) — busca direto do browser
+          let data = null;
+          try { const r = await fetch('https://api.binance.com/api/v3/ticker/bookTicker', { signal: AbortSignal.timeout(10000) }); if (r && r.ok) data = await r.json(); } catch {}
+          if (!data) { try { const r = await apiFetch('https://api.binance.com/api/v3/ticker/bookTicker', { method: 'GET' }, true); if (r && r.ok) data = await r.json(); } catch {} }
           if (!Array.isArray(data)) return result;
           const lk = {}; data.forEach(d => { lk[d.symbol] = d; });
           for (const sym of PAIRS) {
             const d = lk[sym.replace('/', '')];
-            if (d) result[sym] = { bid: parseFloat(d.bidPrice||0), ask: parseFloat(d.askPrice||0), bidQty: parseFloat(d.bidQty||0), askQty: parseFloat(d.askQty||0) };
+            if (d) { const bid = parseFloat(d.bidPrice||0); const ask = parseFloat(d.askPrice||0); if (bid > 0) result[sym] = { bid, ask, bidQty: parseFloat(d.bidQty||0), askQty: parseFloat(d.askQty||0) }; }
           }
         } else if (ex === 'MEXC') {
           const r = await apiFetch('https://api.mexc.com/api/v3/ticker/bookTicker', { method: 'GET' }, true);
