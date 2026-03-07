@@ -3514,6 +3514,7 @@
       const secret = document.getElementById(exch + '-secret')?.value?.trim();
       const pp = document.getElementById(exch + '-pp')?.value?.trim();
       if (!key || !secret) { notify('⚠ Preencha API Key e Secret do ' + exch, 'w'); return }
+      if (['kucoin', 'okx', 'bitget'].includes(exch) && !pp) { notify('⚠ ' + exch.toUpperCase() + ' requer Passphrase — preencha o campo', 'w'); return }
       const data = { key, secret }; if (pp) data.passphrase = pp;
       lsSet('keys_' + exch, data);
       document.getElementById(exch + '-key').classList.add('valid');
@@ -3718,19 +3719,23 @@
         else if (exl === 'binance') res = await balBinance(saved);
         else res = { error: 'Saldo não implementado para ' + exch };
         // Normaliza nome para bater com chave do objeto BAL
-        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
+        const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch === 'binance' ? 'Binance' : exch;
         if (res.error) {
-          setApiSt(exl, 'err', res.error.slice(0, 35)); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
-          notify('✗ ' + exchKey + ': ' + res.error, 'e');
+          const fe = friendlyError(exchKey, res.error);
+          setApiSt(exl, 'err', fe.replace(exchKey + ': ', '').slice(0, 30));
+          setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+          notify('✗ ' + fe, 'e');
         } else {
           if (BAL[exchKey]) { BAL[exchKey].spot = res.spot; BAL[exchKey].futures = res.futures; }
           setApiSt(exl, 'on', 'Conectado ✓'); setBalDsp(exl, res.spot, res.futures, 'ok'); updateLed(exl, 'on');
           setBalTs(exl); setBalPerms(exl, true); updateBalPanel();
-          notify('✓ ' + exchKey + ' — Spot: $' + fmt(res.spot) + ' | Fut: $' + fmt(res.futures), 'g');
+          notify('✓ ' + exchKey + ' conectado — Spot: $' + fmt(res.spot) + ' | Fut: $' + fmt(res.futures), 'g');
         }
       } catch (err) {
-        setApiSt(exl, 'err', 'Erro conexão'); setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
-        notify('⚠ ' + exch + ': ' + errMsg(err), 'w');
+        const fe = friendlyError(exchKey || exch, errMsg(err));
+        setApiSt(exl, 'err', fe.replace((exchKey || exch) + ': ', '').slice(0, 30));
+        setBalDsp(exl, null, null, 'error'); updateLed(exl, 'err');
+        notify('✗ ' + fe, 'e');
       }
     }
 
@@ -4177,6 +4182,24 @@
       if (!err) return 'Erro desconhecido';
       if (err.message) return err.message;
       try { return JSON.stringify(err); } catch (e) { return String(err) }
+    }
+    function friendlyError(exch, raw) {
+      const s = String(raw || '');
+      if (/timestamp|recvWindow|time window|clock|ahead of server/i.test(s))
+        return exch + ': Relógio desincronizado — recarregue a página';
+      if (/signature|INVALID_KEY|invalid.*key|API-key format|api_key|ACCESS_KEY does not|KC-API-KEY|-1022|-2014|10003|50111|40001|400003|30001|-10102|Unauthorized/i.test(s))
+        return exch + ': Key ou Secret incorretos';
+      if (/passphrase|Passphrase|obrigatorio/i.test(s))
+        return exch + ': Preencha o campo Passphrase';
+      if (/IP.*whitelist|whitelist.*IP|ip not allow/i.test(s))
+        return exch + ': IP bloqueado — desative restrição de IP nas API Keys';
+      if (/permission|Forbidden|not authorized/i.test(s))
+        return exch + ': Ative permissão Trade nas API Keys';
+      if (/timeout|timed out|Failed to fetch|NetworkError|Proxy offline|AbortError|offline/i.test(s))
+        return exch + ': Servidor offline — tente em instantes';
+      if (/HTTP 4|HTTP 5|status 4|status 5/i.test(s))
+        return exch + ': Serviço indisponível — tente novamente';
+      return exch + ': ' + s.replace(new RegExp('^' + exch + ':\\s*', 'i'), '').slice(0, 55);
     }
     const _locks = new Map();
     async function withLock(key, fn, ms = 800) {
