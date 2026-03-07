@@ -3451,6 +3451,9 @@
     // ════════════════════════════════════════════════════════
     const PAIRS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'AVAX/USDT', 'LINK/USDT', 'DOT/USDT', 'POL/USDT', 'LTC/USDT', 'NEAR/USDT', 'APT/USDT', 'ARB/USDT', 'OP/USDT', 'INJ/USDT', 'SUI/USDT'];
     const EXCHS = ['BingX', 'MEXC', 'Gate', 'KuCoin', 'Binance', 'Bybit', 'OKX', 'LBank', 'Bitget'];
+    // Pre-computado uma vez — evita recriação a cada ciclo genRows()
+    const EXCH_PAIRS = [];
+    for (let _i = 0; _i < EXCHS.length; _i++) for (let _j = 0; _j < EXCHS.length; _j++) if (_i !== _j) EXCH_PAIRS.push([EXCHS[_i], EXCHS[_j]]);
     const QUOTES = {};
     let LAST_FETCH = 0;
     let MODE_WARN_TS = 0;
@@ -3461,6 +3464,7 @@
     let allRows = [], filteredRows = [], selIdx = 0, pctVal = 100, qtyMode = 'usdt', afTypeF = 'all';
     let positions = [], tradeHistory = [], tradeId = 1, botRunning = false, liveInterval = null;
     let arbInProgress = false;
+    let _scanHash = '', _lastTradeLen = -1;
 
     // ════════════════════════════════════════════════════════
     // LOCALSTORAGE
@@ -3663,6 +3667,7 @@
       const exl = exch.toLowerCase();
       const saved = lsGet('keys_' + exl);
       if (!saved || !saved.key || !saved.secret) { setApiSt(exl, 'off', 'Sem key'); setBalDsp(exl, null, null, 'nokey'); return }
+      await initTsOffset(); // garante timestamp correto antes de qualquer assinatura
       setApiSt(exl, 'loading', 'Buscando...');
       try {
         let res;
@@ -3693,7 +3698,7 @@
     }
 
     async function balBingX(c) {
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const p = 'timestamp=' + ts + '&recvWindow=5000';
       const sig = await hmacHex(p, c.secret);
       try {
@@ -3714,7 +3719,7 @@
     }
 
     async function balMEXC(c) {
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const p = 'timestamp=' + ts + '&recvWindow=5000';
       const sig = await hmacHex(p, c.secret);
       try {
@@ -3738,7 +3743,7 @@
     }
 
     async function balGate(c) {
-      const tsSec = Math.floor(Date.now() / 1000).toString();
+      const tsSec = Math.floor(correctTs() / 1000).toString();
       const bodyHash = await sha512hex('');
       const signStr = 'GET\n/api/v4/spot/accounts\n\n' + bodyHash + '\n' + tsSec;
       const sig = await hmacHex(signStr, c.secret, 'SHA-512');
@@ -3761,7 +3766,7 @@
 
     async function balKuCoin(c) {
       if (!c.passphrase) return { error: 'KuCoin: Passphrase obrigatorio' };
-      const ts = Date.now().toString();
+      const ts = correctTs().toString();
       const path = '/api/v1/accounts';
       const query = 'currency=USDT';
       const sig = await hmacB64(ts + 'GET' + path + '?' + query, c.secret);
@@ -3839,7 +3844,7 @@
     async function balLBank(c) {
       // LBank V2 — HMAC-SHA256, params sorted alphabetically
       try {
-        const ts = Date.now().toString();
+        const ts = correctTs().toString();
         const params = { api_key: c.key, sign_type: 'HmacSHA256', time: ts };
         const sorted = Object.keys(params).sort().map(k => k + '=' + params[k]).join('&');
         const sig = await hmacHex(sorted, c.secret);
@@ -3855,7 +3860,7 @@
       // Bitget V2 — HMAC-SHA256-Base64, passphrase obrigatória
       if (!c.passphrase) return { error: 'Bitget: Passphrase obrigatória' };
       try {
-        const ts = Date.now().toString();
+        const ts = correctTs().toString();
         const path = '/api/v2/spot/account/assets?coin=USDT';
         const sig = await hmacB64(ts + 'GET' + path + '', c.secret);
         const h = { 'ACCESS-KEY': c.key, 'ACCESS-SIGN': sig, 'ACCESS-TIMESTAMP': ts, 'ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' };
@@ -4249,13 +4254,7 @@
         return;
       }
       PAIRS.forEach(sym => {
-        const pairs = [];
-        for (let i = 0; i < EXCHS.length; i++) {
-          for (let j = 0; j < EXCHS.length; j++) {
-            if (i !== j) pairs.push([EXCHS[i], EXCHS[j]]);
-          }
-        }
-        pairs.forEach(([bEx, sEx]) => {
+        EXCH_PAIRS.forEach(([bEx, sEx]) => {
           const qb = QUOTES[bEx]?.[sym];
           const qs = QUOTES[sEx]?.[sym];
           if (!qb || !qs || !qb.ask || !qs.bid) return;
@@ -4296,7 +4295,9 @@
         if (srch && !r.sym.includes(srch)) return false; return true;
       });
       if (selIdx >= filteredRows.length) selIdx = 0;
-      renderScanner(); renderAsset();
+      // Só rebuilda DOM se algo mudou (evita innerHTML pesado sem necessidade)
+      const _newHash = filteredRows.length + '|' + selIdx + '|' + (filteredRows[0]?.spread.toFixed(3) || '');
+      if (_newHash !== _scanHash) { _scanHash = _newHash; renderScanner(); renderAsset(); }
       (function () { var __t = document.getElementById('oppCnt'); if (__t) __t.textContent = filteredRows.length; })();
       (function () { var __t = document.getElementById('scanBadge'); if (__t) __t.textContent = filteredRows.length; })();
       (function () { var __t = document.getElementById('listCt'); if (__t) __t.textContent = filteredRows.length; })();
@@ -4682,7 +4683,9 @@
       (function () { var __t = document.getElementById('wsLat'); if (__t) __t.textContent = (Date.now() - _t0) + 'ms'; })();
       if (filteredRows[selIdx]) renderOB(filteredRows[selIdx].buyAt, filteredRows[selIdx].liq || 0);
       if (positions.length) renderPos();
-      updateBalPanel(); renderOverview();
+      updateBalPanel();
+      // renderOverview só quando trades mudam (evita re-render desnecessário)
+      if (tradeHistory.length !== _lastTradeLen) { _lastTradeLen = tradeHistory.length; renderOverview(); }
       if (botRunning && document.getElementById('tog-auto')?.checked) {
         const minSp = parseFloat(document.getElementById('cfg-minSpread')?.value || 0);
         const best = filteredRows.find(r => r.spread >= minSp && r.net > 0);
@@ -4840,7 +4843,7 @@
       toggleLimitInputs();
       renderPos(); renderOverview(); updateBalPanel();
       EXCHS.forEach(ex => { if (lsGet('keys_' + ex.toLowerCase())) fetchBalances(ex.toLowerCase()).catch(e => console.warn('[BAL] ' + ex + ': ' + errMsg(e))) });
-      liveInterval = setInterval(live, 1600);
+      liveInterval = setInterval(live, 3000);
       // Keep-alive: ping Render a cada 10min para nunca dormir
       setInterval(() => fetch(DEFAULT_PROXY_BASE + '/proxy?_target=https://api.binance.com/api/v3/time').catch(() => {}), 600000);
       notify('▶ ARB-HFT iniciado — Cole suas API Keys para ativar saldos reais', '');
