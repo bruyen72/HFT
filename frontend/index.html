@@ -4056,7 +4056,8 @@
     function applyProxy() {
       const inp = document.getElementById('proxy-input');
       if (!inp) return;
-      const val = inp.value.trim().replace(/\/+$/, '');
+      let val = inp.value.trim().replace(/\/+$/, '');
+      if (val && !val.startsWith('http://') && !val.startsWith('https://')) val = 'https://' + val;
       if (!val) {
         localStorage.removeItem('proxy_base');
         notify('Proxy removido', 'w');
