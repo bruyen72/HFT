@@ -2533,6 +2533,9 @@
           <div class="ld ld-off" id="ld-kucoin"></div>KuCoin
         </div>
         <div class="led">
+          <div class="ld ld-off" id="ld-binance"></div>Binance
+        </div>
+        <div class="led">
           <div class="ld ld-off" id="ld-bybit"></div>Bybit
         </div>
         <div class="led">
@@ -3377,6 +3380,40 @@
           </div>
         </div>
 
+        <!-- Binance -->
+        <div class="api-card">
+          <div class="api-card-hd">
+            <span class="api-card-name" style="color:#f3ba2f">◆ Binance</span>
+            <div class="api-card-status">
+              <div class="api-status-dot off" id="binance-dot"></div><span id="binance-status" style="color:var(--dim)">Sem key</span>
+            </div>
+          </div>
+          <div class="api-card-body">
+            <form class="api-form" onsubmit="return false">
+            <div class="api-field">
+              <div class="api-field-label">API Key <span>Permissão: Trade</span></div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="binance-key" placeholder="Cole sua API Key aqui..."><button class="api-eye" onclick="toggleEye('binance-key',this)">👁</button></div>
+            </div>
+            <div class="api-field">
+              <div class="api-field-label">Secret Key</div>
+              <div class="api-inp-wrap"><input class="api-inp" type="password" autocomplete="new-password" id="binance-secret" placeholder="Cole sua Secret Key aqui..."><button class="api-eye" onclick="toggleEye('binance-secret',this)">👁</button></div>
+            </div>
+            <div id="binance-perms">
+              <span class="apiperm no">✗ SPOT</span><span class="apiperm no">✗ FUTURES</span><span class="apiperm no">✗ TRADE</span><span class="apiperm no">✗ WITHDRAW</span>
+            </div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Spot)</span><span class="api-bal-val apibv" id="binance-bal-s">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Saldo USDT (Futures)</span><span class="api-bal-val apibv" id="binance-bal-f">—</span></div>
+              <div class="api-balance-row"><span class="api-bal-key">Atualizado</span><span style="color:var(--dim);font-size:8px" id="binance-bal-ts">—</span></div>
+            </div>
+            </form>
+          </div>
+          <div class="api-card-footer">
+            <button class="api-test-btn" onclick="testApi('binance')">🔌 Testar Conexão</button>
+            <button class="api-save-btn" onclick="saveApi('binance')">💾 Salvar</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -3679,6 +3716,7 @@
         else if (exl === 'okx') res = await balOKX(saved);
         else if (exl === 'lbank') res = await balLBank(saved);
         else if (exl === 'bitget') res = await balBitget(saved);
+        else if (exl === 'binance') res = await balBinance(saved);
         else res = { error: 'Saldo não implementado para ' + exch };
         // Normaliza nome para bater com chave do objeto BAL
         const exchKey = exch === 'bingx' ? 'BingX' : exch === 'mexc' ? 'MEXC' : exch === 'gate' ? 'Gate' : exch === 'kucoin' ? 'KuCoin' : exch === 'lbank' ? 'LBank' : exch === 'bitget' ? 'Bitget' : exch === 'bybit' ? 'Bybit' : exch === 'okx' ? 'OKX' : exch;
@@ -3841,6 +3879,30 @@
         return { spot, futures: fut };
       } catch (e) { return { error: 'OKX: ' + e.message } }
     }
+    async function balBinance(c) {
+      // Binance bloqueia proxy Render (CloudFront 403) — busca direto do browser
+      const ts = correctTs().toString();
+      const p = 'timestamp=' + ts + '&recvWindow=5000';
+      const sig = await hmacHex(p, c.secret);
+      try {
+        const r = await fetch('https://api.binance.com/api/v3/account?' + p + '&signature=' + sig, { method: 'GET', headers: { 'X-MBX-APIKEY': c.key }, signal: AbortSignal.timeout(10000) });
+        if (!r.ok) return { error: 'Binance: HTTP ' + r.status };
+        const d = await r.json();
+        if (d.code && d.code < 0) return { error: 'Binance: ' + (d.msg || 'code ' + d.code) };
+        const u = (d.balances || []).find(b => b.asset === 'USDT');
+        const spot = parseFloat(u?.free || 0);
+        let fut = 0;
+        try {
+          const ts2 = correctTs().toString();
+          const p2 = 'timestamp=' + ts2 + '&recvWindow=5000';
+          const sig2 = await hmacHex(p2, c.secret);
+          const r2 = await fetch('https://fapi.binance.com/fapi/v2/balance?' + p2 + '&signature=' + sig2, { method: 'GET', headers: { 'X-MBX-APIKEY': c.key }, signal: AbortSignal.timeout(10000) });
+          if (r2.ok) { const d2 = await r2.json(); if (Array.isArray(d2)) { const u2 = d2.find(b => b.asset === 'USDT'); fut = parseFloat(u2?.availableBalance || 0); } }
+        } catch {}
+        return { spot, futures: fut };
+      } catch (e) { return { error: 'Binance: ' + e.message } }
+    }
+
     async function balLBank(c) {
       // LBank V2 — HMAC-SHA256, params sorted alphabetically
       try {
@@ -3885,9 +3947,26 @@
       if (exl === 'kucoin') return placeOrderKuCoin(c, symbol, side, qty, price, isSpot);
       if (exl === 'bybit') return placeOrderBybit(c, symbol, side, qty, price, isSpot);
       if (exl === 'okx') return placeOrderOKX(c, symbol, side, qty, price, isSpot);
-      if (exl === 'lbank' || exl === 'bitget') throw new Error(exch + ': execução de ordens não suportada. Use BingX, MEXC, Gate, KuCoin, Bybit ou OKX.');
-      if (exl === 'binance') throw new Error('Binance: bloqueada no servidor (CloudFront 403). Use outra exchange.');
+      if (exl === 'lbank' || exl === 'bitget') throw new Error(exch + ': execução de ordens não suportada. Use BingX, MEXC, Gate, KuCoin, Bybit, OKX ou Binance.');
+      if (exl === 'binance') return placeOrderBinance(c, symbol, side, qty, price, isSpot);
       throw new Error('Exchange desconhecida: ' + exch);
+    }
+
+    async function placeOrderBinance(c, sym, side, qty, price, isSpot) {
+      // Binance direto do browser (proxy bloqueia CloudFront 403)
+      const ts = correctTs().toString();
+      const sf = sym.replace('/', '');
+      const ep = isSpot ? 'https://api.binance.com/api/v3/order' : 'https://fapi.binance.com/fapi/v1/order';
+      const p = isSpot
+        ? 'symbol=' + sf + '&side=' + side.toUpperCase() + '&type=LIMIT&timeInForce=GTC&quantity=' + qty + '&price=' + price + '&timestamp=' + ts + '&recvWindow=5000'
+        : 'symbol=' + sf + '&side=' + side.toUpperCase() + '&positionSide=BOTH&type=LIMIT&timeInForce=GTC&quantity=' + qty + '&price=' + price + '&timestamp=' + ts + '&recvWindow=5000';
+      const sig = await hmacHex(p, c.secret);
+      try {
+        const r = await fetch(ep + '?' + p + '&signature=' + sig, { method: 'POST', headers: { 'X-MBX-APIKEY': c.key }, signal: AbortSignal.timeout(10000) });
+        const d = await r.json();
+        if (d.code && d.code < 0) throw new Error('Binance: ' + (d.msg || 'code ' + d.code));
+        return { orderId: d.orderId, exchange: 'Binance', symbol: sym, side, qty, price };
+      } catch (e) { throw new Error('Binance ordem: ' + e.message) }
     }
 
     async function placeOrderBingX(c, sym, side, qty, price, isSpot) {
@@ -4491,6 +4570,13 @@
         const sig = await hmacB64(tsOkx + 'POST' + path + bodyStr, c.secret);
         const r = await apiFetch('https://www.okx.com' + path, { method: 'POST', headers: { 'OK-ACCESS-KEY': c.key, 'OK-ACCESS-SIGN': sig, 'OK-ACCESS-TIMESTAMP': tsOkx, 'OK-ACCESS-PASSPHRASE': c.passphrase, 'Content-Type': 'application/json' }, body: bodyStr });
         const d = await r.json(); if (d.code !== '0') throw new Error('OKX: ' + (d.msg || d.code)); return d;
+      }
+      if (exl === 'binance') {
+        const sf = sym.replace('/', '');
+        const p = 'symbol=' + sf + '&orderId=' + orderId + '&timestamp=' + ts + '&recvWindow=5000';
+        const sig = await hmacHex(p, c.secret);
+        const r = await fetch('https://api.binance.com/api/v3/order?' + p + '&signature=' + sig, { method: 'DELETE', headers: { 'X-MBX-APIKEY': c.key }, signal: AbortSignal.timeout(10000) });
+        const d = await r.json(); if (d.code && d.code < 0) throw new Error('Binance: ' + (d.msg || d.code)); return d;
       }
       throw new Error(exch + ': cancel não suportado');
     }
