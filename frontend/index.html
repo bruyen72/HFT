@@ -3541,7 +3541,7 @@
     // ════════════════════════════════════════════════════════
     // FETCH with CORS proxy fallback
     // ════════════════════════════════════════════════════════
-    const DEFAULT_PROXY_BASE = '';
+    const DEFAULT_PROXY_BASE = 'https://hft-aimc.onrender.com';
     function getProxyBase() {
       try {
         const qp = new URLSearchParams(location.search).get('proxy');
@@ -4837,6 +4837,8 @@
       renderPos(); renderOverview(); updateBalPanel();
       EXCHS.forEach(ex => { if (lsGet('keys_' + ex.toLowerCase())) fetchBalances(ex.toLowerCase()).catch(e => console.warn('[BAL] ' + ex + ': ' + errMsg(e))) });
       liveInterval = setInterval(live, 1600);
+      // Keep-alive: ping Render a cada 10min para nunca dormir
+      setInterval(() => fetch(DEFAULT_PROXY_BASE + '/proxy?_target=https://api.binance.com/api/v3/time').catch(() => {}), 600000);
       notify('▶ ARB-HFT iniciado — Cole suas API Keys para ativar saldos reais', '');
     })();
 
