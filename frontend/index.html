@@ -3577,7 +3577,7 @@
         } else {
           const h = { ...(opts.headers || {}), 'ngrok-skip-browser-warning': '1' };
           delete h['content-length']; delete h['Content-Length'];
-          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
+          const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(30000) });
           if (r.ok || r.status < 500) return r;
         }
       } catch (e) {
