@@ -3575,7 +3575,7 @@
         if (!proxyUrl) {
           lastErr = 'Proxy não configurado. Use ?proxy=URL_DO_BACKEND ou defina localStorage.proxy_base';
         } else {
-          const h = { ...(opts.headers || {}) };
+          const h = { ...(opts.headers || {}), 'ngrok-skip-browser-warning': '1' };
           delete h['content-length']; delete h['Content-Length'];
           const r = await fetch(proxyUrl, { ...opts, headers: h, signal: AbortSignal.timeout(10000) });
           if (r.ok || r.status < 500) return r;
