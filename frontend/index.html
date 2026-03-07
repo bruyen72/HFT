@@ -4737,24 +4737,26 @@
             if (t) result[sym] = { bid: parseFloat(t.buy||0), ask: parseFloat(t.sell||0), bidQty: 0, askQty: 0 };
           }
         } else if (ex === 'BingX') {
-          // BingX bloqueia IPs de datacenter — busca direto do browser
-          const r = await fetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { signal: AbortSignal.timeout(10000) });
-          if (!r || !r.ok) return result;
-          const d = await r.json();
+          // Tenta direto do browser (CORS), fallback via proxy se falhar
+          let d = null;
+          try { const r = await fetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { signal: AbortSignal.timeout(10000) }); if (r && r.ok) d = await r.json(); } catch {}
+          if (!d) { try { const r = await apiFetch('https://open-api.bingx.com/openApi/spot/v1/ticker/24Hr', { method: 'GET' }, true); if (r && r.ok) d = await r.json(); } catch {} }
+          if (!d) return result;
           const lk = {}; (Array.isArray(d?.data) ? d.data : []).forEach(t => { lk[t.symbol] = t; });
           for (const sym of PAIRS) {
             const t = lk[sym.replace('/', '-')];
-            if (t) result[sym] = { bid: parseFloat(t.bidPrice||0), ask: parseFloat(t.askPrice||0), bidQty: parseFloat(t.bidVolume||t.bidQty||0), askQty: parseFloat(t.askVolume||t.askQty||0) };
+            if (t) { const bid = parseFloat(t.bidPrice||t.lastPrice||0); const ask = parseFloat(t.askPrice||t.lastPrice||0); if (bid > 0) result[sym] = { bid, ask, bidQty: parseFloat(t.bidVolume||t.bidQty||0), askQty: parseFloat(t.askVolume||t.askQty||0) }; }
           }
         } else if (ex === 'Bybit') {
-          // Bybit permite CORS — busca direto do browser
-          const r = await fetch('https://api.bybit.com/v5/market/tickers?category=spot', { signal: AbortSignal.timeout(10000) });
-          if (!r || !r.ok) return result;
-          const d = await r.json();
+          // Tenta direto do browser (CORS), fallback via proxy se falhar
+          let d = null;
+          try { const r = await fetch('https://api.bybit.com/v5/market/tickers?category=spot', { signal: AbortSignal.timeout(10000) }); if (r && r.ok) d = await r.json(); } catch {}
+          if (!d) { try { const r = await apiFetch('https://api.bybit.com/v5/market/tickers?category=spot', { method: 'GET' }, true); if (r && r.ok) d = await r.json(); } catch {} }
+          if (!d) return result;
           const lk = {}; (d?.result?.list || []).forEach(t => { lk[t.symbol] = t; });
           for (const sym of PAIRS) {
             const t = lk[sym.replace('/', '')];
-            if (t) result[sym] = { bid: parseFloat(t.bid1Price||0), ask: parseFloat(t.ask1Price||0), bidQty: parseFloat(t.bid1Size||0), askQty: parseFloat(t.ask1Size||0) };
+            if (t) { const bid = parseFloat(t.bid1Price||t.lastPrice||0); const ask = parseFloat(t.ask1Price||t.lastPrice||0); if (bid > 0) result[sym] = { bid, ask, bidQty: parseFloat(t.bid1Size||0), askQty: parseFloat(t.ask1Size||0) }; }
           }
         } else if (ex === 'OKX') {
           const r = await apiFetch('https://www.okx.com/api/v5/market/tickers?instType=SPOT', { method: 'GET' }, true);
